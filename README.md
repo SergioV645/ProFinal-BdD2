@@ -18,7 +18,7 @@ Proyecto final del curso de Bases de Datos II.
 
 ---
 
-## 🛠️ Stack técnico
+## Stack técnico
 
 | Capa           | Tecnología                                   |
 |----------------|-----------------------------------------------|
@@ -37,26 +37,24 @@ Proyecto Final/
 │   ├── main.go              # Punto de entrada y rutas HTTP
 │   ├── db/
 │   │   └── db.go            # Conexión a MySQL
-│   ├── handlers/            # Lógica de cada endpoint (clientes, vehículos, órdenes, etc.)
-│   └── public/               # Frontend estático (HTML, CSS, JS)
+│   ├── handlers/            # Lógica de cada endpoint
+│   └── public/               # Frontend estático
 ├── sql/
-│   ├── 01_creacion.sql       # Creación de tablas
-│   ├── 02_insercion.sql      # Datos de ejemplo
-│   ├── 03_logica_negocio.sql # Funciones, procedimientos y triggers
-│   └── 04_fix_vistas.sql     # Recreación de vistas (por si falla el script 03)
+│   ├── 01_creacion.sql       
+│   ├── 02_insercion.sql      # Datos de prueba
+│   ├── 03_logica_negocio.sql 
+│   └── 04_fix_vistas.sql     
 └── Proyecto_Final_v20261.pdf # Documentación / informe del proyecto
 ```
 
 ---
-
 ## Base de datos
-
 El esquema `taller_vehiculos` incluye las siguientes tablas principales:
 
 `cargos`, `categorias_servicio`, `clientes`, `vehiculos`, `empleados`, `proveedores`, `repuestos`, `servicios`, `ordenes_trabajo`, `detalle_servicios`, `detalle_repuestos`, `facturas`, `revisiones_cda`.
 
-### Lógica de negocio (script `03_logica_negocio.sql`)
-
+### Lógica de negocio
+-- Por avanzar**
 **Funciones**
 - `fn_calcular_total_orden` — calcula el total (servicios + repuestos) de una orden.
 - `fn_obtener_stock_disponible` — retorna el stock actual de un repuesto.
@@ -83,7 +81,6 @@ El esquema `taller_vehiculos` incluye las siguientes tablas principales:
 - `v_vehiculos_con_cda_vencida`
 
 ---
-
 ## Instalación y ejecución
 
 ### Requisitos previos
@@ -94,7 +91,7 @@ El esquema `taller_vehiculos` incluye las siguientes tablas principales:
 
 ```bash
 git clone https://github.com/SergioV645/ProFinal-BdD2.git
-cd ProFinal-BdD2/Proyecto\ Final
+cd ProFinal-BdD2/ProyectoFinal
 ```
 
 ### 2. Crear la base de datos
@@ -128,7 +125,6 @@ go run main.go
 El servidor quedará disponible en **http://localhost:8080**, sirviendo también el frontend estático desde `backend/public`.
 
 ---
-
 ## Endpoints principales de la API
 
 | Método | Endpoint                          | Descripción                              |
@@ -145,14 +141,11 @@ El servidor quedará disponible en **http://localhost:8080**, sirviendo también
 | GET/POST | `/api/revisionescda`              | Listar / registrar revisiones CDA         |
 
 ---
-
 ## Autores
 
 **Federico Ospina**
 **Natalia Rodriguez**
 **Sergio Valderrama**
 
-
 ---
-
 Proyecto académico desarrollado con fines educativos.
