@@ -96,7 +96,7 @@ cd ProFinal-BdD2/ProyectoFinal
 
 ### 2. Crear la base de datos
 
-Ejecuta los scripts SQL en orden desde tu cliente MySQL preferido (Workbench, DBeaver, CLI, etc.):
+Ejecuta los scripts SQL en orden desde MySQL Workbench:
 
 ```bash
 mysql -u root -p < sql/01_creacion.sql
@@ -107,7 +107,7 @@ mysql -u root -p < sql/04_fix_vistas.sql
 
 ### 3. Configurar la conexión
 
-En `backend/main.go`, ajusta el DSN con tus credenciales de MySQL:
+En `backend/main.go`, ajusta el DSN con lass credenciales de MySQL:
 
 ```go
 dsn := "root:0000@tcp(localhost:3306)/taller_vehiculos?parseTime=true"
@@ -144,7 +144,7 @@ El servidor quedará disponible en **http://localhost:8080**, sirviendo también
 
 **Federico Ospina**\
 **Natalia Rodriguez**\
-**Sergio Valderrama**\
+**Sergio Valderrama**
 
 ---
 Proyecto académico desarrollado con fines educativos.
