@@ -142,9 +142,9 @@ El servidor quedará disponible en **http://localhost:8080**, sirviendo también
 ---
 ## Autores
 
-**Federico Ospina**
-**Natalia Rodriguez**
-**Sergio Valderrama**
+**Federico Ospina**\
+**Natalia Rodriguez**\
+**Sergio Valderrama**\
 
 ---
 Proyecto académico desarrollado con fines educativos.
