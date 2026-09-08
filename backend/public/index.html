@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aurum Motors — Sistema Princiapl</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="css/style.css" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">T0D0</div>
+    <div class="brand-text">
+      <span class="brand-name">AURUM</span>
+      <span class="brand-sub">MOTORS</span>
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <nav class="sidebar-nav">
+    <a class="sidebar-link active" href="#" data-section="dashboard">
+      <i class="bi bi-grid-1x2"></i>
+      <span>Dashboard</span>
+    </a>
+    <a class="sidebar-link" href="#" data-section="clientes">
+      <i class="bi bi-people"></i>
+      <span>Clientes</span>
+    </a>
+    <a class="sidebar-link" href="#" data-section="vehiculos">
+      <i class="bi bi-car-front"></i>
+      <span>Vehiculos</span>
+    </a>
+    <a class="sidebar-link" href="#" data-section="ordenes">
+      <i class="bi bi-clipboard2-check"></i>
+      <span>Ordenes</span>
+    </a>
+    <a class="sidebar-link" href="#" data-section="repuestos">
+      <i class="bi bi-tools"></i>
+      <span>Repuestos</span>
+    </a>
+    <a class="sidebar-link" href="#" data-section="cda">
+      <i class="bi bi-patch-check"></i>
+      <span>CDA</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-footer-line">AURUM</div>
+    <div class="sidebar-footer-line muted">Bogotá, Colombia</div>
+    <div class="sidebar-footer-line muted">Bases de Datos 2</div>
+  </div>
+</aside>
+
+<!-- ===== MAIN ===== -->
+<main class="main-content">
+
+  <!-- TOAST -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+    <div id="appToast" class="toast" role="alert">
+      <div class="toast-body d-flex align-items-center gap-3 px-4 py-3">
+        <i id="toastIcon" class="toast-icon"></i>
+        <span id="toastMsg"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <section id="section-dashboard">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">DASH<span class="page-title-accent">BOARD</span></h1>
+        <p class="page-subtitle">Resumen general </p>
+      </div>
+    </div>
+
+    <div class="stats-grid stagger" id="stats-grid">
+      <div class="stat-card accent">
+        <span class="stat-label">Ordenes Activas</span>
+        <div class="stat-value" id="stat-ordenes-activas">—</div>
+        <span class="stat-icon"><i class="bi bi-clipboard2-check"></i></span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Clientes</span>
+        <div class="stat-value" id="stat-clientes">—</div>
+        <span class="stat-icon"><i class="bi bi-people"></i></span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Vehiculos</span>
+        <div class="stat-value" id="stat-vehiculos">—</div>
+        <span class="stat-icon"><i class="bi bi-car-front"></i></span>
+      </div>
+      <div class="stat-card danger">
+        <span class="stat-label">Stock Bajo</span>
+        <div class="stat-value" id="stat-stock-bajo">—</div>
+        <span class="stat-icon"><i class="bi bi-exclamation-triangle"></i></span>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Ordenes Recientes</span>
+        </div>
+        <div class="panel-body" id="dashboard-ordenes">
+          <div class="loading-state"><div class="spinner"></div> Ordenando ordenes...</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title" style="color:var(--danger)">Stock Critico</span>
+        </div>
+        <div class="panel-body" id="dashboard-stock">
+          <div class="loading-state"><div class="spinner"></div> Hay que comprar más...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CLIENTES ===== -->
+  <section id="section-clientes" class="d-none">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">CLIEN<span class="page-title-accent">TES</span></h1>
+        <p class="page-subtitle">Registro de clientes</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-cliente')">
+        <i class="bi bi-plus"></i> Nuevo Cliente
+      </button>
+    </div>
+    <div class="panel animate-in">
+      <div id="tabla-clientes" class="panel-body">
+        <div class="loading-state"><div class="spinner"></div> Cargando...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== VEHICULOS ===== -->
+  <section id="section-vehiculos" class="d-none">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">VEHICU<span class="page-title-accent">LOS</span></h1>
+        <p class="page-subtitle">Flota registrada en el sistema</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-vehiculo')">
+        <i class="bi bi-plus"></i> Nuevo Vehiculo
+      </button>
+    </div>
+    <div class="filter-bar animate-in">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="buscar-placa" placeholder="Buscar placa..." oninput="cargarVehiculos()" />
+      </div>
+    </div>
+    <div class="panel animate-in">
+      <div id="tabla-vehiculos" class="panel-body">
+        <div class="loading-state"><div class="spinner"></div> Cargando...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ORDENES ===== -->
+  <section id="section-ordenes" class="d-none">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">ORDE<span class="page-title-accent">NES</span></h1>
+        <p class="page-subtitle">Ordenes de trabajo activas e historicas</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-orden')">
+        <i class="bi bi-plus"></i> Nueva Orden
+      </button>
+    </div>
+    <div class="filter-bar animate-in">
+      <select id="filtro-estado" class="form-select" style="width:auto" onchange="cargarOrdenes()">
+        <option value="">Todos los estados</option>
+        <option value="PENDIENTE">Pendiente</option>
+        <option value="EN_PROCESO">En Proceso</option>
+        <option value="COMPLETADO">Completado</option>
+        <option value="ENTREGADO">Entregado</option>
+      </select>
+    </div>
+    <div class="panel animate-in">
+      <div id="tabla-ordenes" class="panel-body">
+        <div class="loading-state"><div class="spinner"></div> Cargando...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== REPUESTOS ===== -->
+  <section id="section-repuestos" class="d-none">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">REPUES<span class="page-title-accent">TOS</span></h1>
+        <p class="page-subtitle">Inventario de partes y componentes</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-repuesto')">
+        <i class="bi bi-plus"></i> Nuevo Repuesto
+      </button>
+    </div>
+    <div class="panel animate-in">
+      <div id="tabla-repuestos" class="panel-body">
+        <div class="loading-state"><div class="spinner"></div> Cargando...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CDA ===== -->
+  <section id="section-cda" class="d-none">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">REVI<span class="page-title-accent">SIONES CDA</span></h1>
+        <p class="page-subtitle">Historial de revisiones tecnico-mecanicas</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-cda')">
+        <i class="bi bi-plus"></i> Nueva Revision
+      </button>
+    </div>
+    <div class="panel animate-in">
+      <div id="tabla-cda" class="panel-body">
+        <div class="loading-state"><div class="spinner"></div> Cargando...</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== MODALES ===== -->
+
+<!-- CLIENTE -->
+<div class="modal fade" id="modal-cliente" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">REGISTRAR CLIENTE</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-section-title">Datos del Cliente</p>
+        <div class="form-row" style="--cols:3">
+          <div class="form-group"><label class="form-label">Cedula *</label><input type="text" class="form-control" id="c-cedula" /></div>
+          <div class="form-group"><label class="form-label">Nombre *</label><input type="text" class="form-control" id="c-nombre" /></div>
+          <div class="form-group"><label class="form-label">Apellido *</label><input type="text" class="form-control" id="c-apellido" /></div>
+          <div class="form-group"><label class="form-label">Telefono</label><input type="text" class="form-control" id="c-telefono" /></div>
+          <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-control" id="c-email" /></div>
+          <div class="form-group"><label class="form-label">Direccion</label><input type="text" class="form-control" id="c-direccion" /></div>
+        </div>
+        <div class="divider"></div>
+        <p class="modal-section-title">Vehiculo (opcional)</p>
+        <div class="form-row" style="--cols:4">
+          <div class="form-group"><label class="form-label">Placa</label><input type="text" class="form-control" id="c-placa" /></div>
+          <div class="form-group"><label class="form-label">Marca</label><input type="text" class="form-control" id="c-marca" /></div>
+          <div class="form-group"><label class="form-label">Modelo</label><input type="text" class="form-control" id="c-modelo" /></div>
+          <div class="form-group"><label class="form-label">Año</label><input type="number" class="form-control" id="c-anio" value="2020" /></div>
+          <div class="form-group"><label class="form-label">Color</label><input type="text" class="form-control" id="c-color" /></div>
+          <div class="form-group"><label class="form-label">Cilindraje (L)</label><input type="number" step="0.1" class="form-control" id="c-cilindraje" /></div>
+          <div class="form-group"><label class="form-label">Km Actual</label><input type="number" class="form-control" id="c-km" value="0" /></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarCliente()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VEHICULO -->
+<div class="modal fade" id="modal-vehiculo" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">NUEVO VEHICULO</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Cliente ID *</label><input type="number" class="form-control" id="v-clienteid" /></div>
+          <div class="form-group"><label class="form-label">Placa *</label><input type="text" class="form-control" id="v-placa" /></div>
+          <div class="form-group"><label class="form-label">Marca *</label><input type="text" class="form-control" id="v-marca" /></div>
+          <div class="form-group"><label class="form-label">Modelo *</label><input type="text" class="form-control" id="v-modelo" /></div>
+          <div class="form-group"><label class="form-label">Año</label><input type="number" class="form-control" id="v-anio" value="2020" /></div>
+          <div class="form-group"><label class="form-label">Color</label><input type="text" class="form-control" id="v-color" /></div>
+          <div class="form-group"><label class="form-label">Km Actual</label><input type="number" class="form-control" id="v-km" value="0" /></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" onclick="guardarVehiculo()">Guardar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ORDEN -->
+<div class="modal fade" id="modal-orden" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">NUEVA ORDEN</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Vehiculo ID *</label><input type="number" class="form-control" id="o-vehiculoid" /></div>
+          <div class="form-group"><label class="form-label">Responsable *</label><select class="form-select" id="o-empleadoid"></select></div>
+          <div class="form-group"><label class="form-label">Km Ingreso</label><input type="number" class="form-control" id="o-km" value="0" /></div>
+          <div class="form-group"><label class="form-label">Fecha Estimada</label><input type="date" class="form-control" id="o-fecha" /></div>
+          <div class="form-group col-span-2"><label class="form-label">Diagnostico</label><textarea class="form-control" id="o-diagnostico"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" onclick="guardarOrden()">Crear Orden</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETALLE ORDEN -->
+<div class="modal fade" id="modal-detalle-orden" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">ORDEN <span id="detalle-orden-id" style="color:var(--gold)"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="detalle-orden-body">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-bs-dismiss="modal">Cerrar</button>
+        <button class="btn btn-success d-none" id="btn-cerrar-orden" onclick="abrirCierreOrden()">
+          <i class="bi bi-check2-circle"></i> Cerrar y Facturar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CERRAR ORDEN -->
+<div class="modal fade" id="modal-cerrar-orden" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">GENERAR FACTURA</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="form-row" style="--cols:1">
+          <div class="form-group"><label class="form-label">Metodo de Pago</label>
+            <select class="form-select" id="co-metodo"><option value="EFECTIVO">Efectivo</option><option value="TARJETA">Tarjeta</option><option value="TRANSFERENCIA">Transferencia</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-control" id="co-obs"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success" onclick="cerrarOrden()">Confirmar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SERVICIO -->
+<div class="modal fade" id="modal-add-servicio" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">AGREGAR SERVICIO</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="form-row" style="--cols:1">
+          <div class="form-group"><label class="form-label">Servicio *</label><select class="form-select" id="as-servicioid"></select></div>
+        </div>
+        <div class="form-row mt-3">
+          <div class="form-group"><label class="form-label">Cantidad</label><input type="number" class="form-control" id="as-cantidad" value="1" min="1" /></div>
+          <div class="form-group"><label class="form-label">Mano de Obra $</label><input type="number" class="form-control" id="as-mano" value="0" /></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" onclick="guardarServicioOrden()">Agregar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD REPUESTO -->
+<div class="modal fade" id="modal-add-repuesto" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">AGREGAR REPUESTO</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="form-row" style="--cols:1">
+          <div class="form-group"><label class="form-label">Repuesto *</label><select class="form-select" id="ar-repuestoid"></select></div>
+          <div class="form-group"><label class="form-label">Cantidad</label><input type="number" class="form-control" id="ar-cantidad" value="1" min="1" /></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" onclick="guardarRepuestoOrden()">Agregar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- REPUESTO -->
+<div class="modal fade" id="modal-repuesto" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">NUEVO REPUESTO</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Proveedor ID *</label><input type="number" class="form-control" id="r-proveedorid" value="1" /></div>
+          <div class="form-group"><label class="form-label">Referencia *</label><input type="text" class="form-control" id="r-referencia" /></div>
+          <div class="form-group col-span-2"><label class="form-label">Nombre *</label><input type="text" class="form-control" id="r-nombre" /></div>
+          <div class="form-group col-span-2"><label class="form-label">Descripcion</label><input type="text" class="form-control" id="r-descripcion" /></div>
+          <div class="form-group"><label class="form-label">Precio Compra</label><input type="number" class="form-control" id="r-pcompra" value="0" /></div>
+          <div class="form-group"><label class="form-label">Precio Venta</label><input type="number" class="form-control" id="r-pventa" value="0" /></div>
+          <div class="form-group"><label class="form-label">Stock Inicial</label><input type="number" class="form-control" id="r-stock" value="0" /></div>
+          <div class="form-group"><label class="form-label">Stock Minimo</label><input type="number" class="form-control" id="r-stockmin" value="5" /></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" onclick="guardarRepuesto()">Guardar</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- CDA -->
+<div class="modal fade" id="modal-cda" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">NUEVA REVISION CDA</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Vehiculo ID *</label><input type="number" class="form-control" id="cda-vehiculoid" /></div>
+          <div class="form-group"><label class="form-label">Inspector *</label><select class="form-select" id="cda-empleadoid"></select></div>
+          <div class="form-group col-span-2"><label class="form-label">Resultado *</label>
+            <select class="form-select" id="cda-resultado">
+              <option value="APROBADO">Aprobado</option>
+              <option value="APROBADO_CON_OBSERVACIONES">Aprobado con Observaciones</option>
+              <option value="REPROBADO">Reprobado</option>
+            </select>
+          </div>
+          <div class="form-group col-span-2"><label class="form-label">Observaciones</label><textarea class="form-control" id="cda-obs"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" onclick="guardarCDA()">Guardar</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
