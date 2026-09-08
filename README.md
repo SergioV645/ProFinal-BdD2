@@ -102,7 +102,6 @@ Ejecuta los scripts SQL en orden desde tu cliente MySQL preferido (Workbench, DB
 mysql -u root -p < sql/01_creacion.sql
 mysql -u root -p < sql/02_insercion.sql
 mysql -u root -p < sql/03_logica_negocio.sql
-# Si el script 03 falla al crear las vistas, ejecuta también:
 mysql -u root -p < sql/04_fix_vistas.sql
 ```
 
