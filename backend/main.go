@@ -3,14 +3,17 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"taller_vehiculos/db"
 	"taller_vehiculos/handlers"
 )
 
 func main() {
-	// Cambia la password por la tuya
-	dsn := "root:0000@tcp(localhost:3306)/taller_vehiculos?parseTime=true"
+	dsn := os.Getenv("MYSQL_DSN")
+	if dsn == "" {
+		log.Fatal("Define MYSQL_DSN antes de iniciar el servidor")
+	}
 	db.Connect(dsn)
 
 	mux := http.NewServeMux()
