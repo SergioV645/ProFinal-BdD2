@@ -44,8 +44,10 @@ document.querySelectorAll('.sidebar-link').forEach(link => {
     sec.classList.remove('animate-in');
     void sec.offsetWidth;
     sec.classList.add('animate-in');
-    ({ dashboard: cargarDashboard, clientes: cargarClientes, vehiculos: cargarVehiculos,
-       ordenes: cargarOrdenes, repuestos: cargarRepuestos, cda: cargarCDA })[link.dataset.section]?.();
+    ({
+      dashboard: cargarDashboard, clientes: cargarClientes, vehiculos: cargarVehiculos,
+      ordenes: cargarOrdenes, repuestos: cargarRepuestos, cda: cargarCDA
+    })[link.dataset.section]?.();
   });
 });
 
@@ -60,12 +62,13 @@ async function cargarDashboard() {
     document.getElementById('stat-vehiculos').textContent = vehiculos.length;
     document.getElementById('stat-stock-bajo').textContent = stock.length;
     document.getElementById('stat-ordenes-activas').textContent =
-      ordenes.filter(o => ['PENDIENTE','EN_PROCESO'].includes(o.estado)).length;
+      ordenes.filter(o => ['PENDIENTE', 'EN_PROCESO'].includes(o.estado)).length;
+    await cargarEstadisticasHistorial();
 
     document.getElementById('dashboard-ordenes').innerHTML = ordenes.length === 0
       ? empty('Sin ordenes recientes')
       : `<table class="data-table"><thead><tr><th>#</th><th>Cliente</th><th>Placa</th><th>Estado</th><th>Total</th></tr></thead><tbody>
-          ${ordenes.slice(0,8).map(o => `<tr>
+          ${ordenes.slice(0, 8).map(o => `<tr>
             <td style="color:var(--text-2)">${o.ordenId}</td>
             <td>${o.cliente ?? '—'}</td>
             <td><code style="color:var(--gold);font-size:0.78rem">${o.placa ?? '—'}</code></td>
@@ -83,7 +86,73 @@ async function cargarDashboard() {
             <td class="muted">${r.stock_minimo ?? r.StockMinimo}</td>
           </tr>`).join('')}
          </tbody></table>`;
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+// ─── ESTADISTICAS HISTORIAL TECNICO ───
+
+async function cargarEstadisticasHistorial() {
+  const totalEventos = document.getElementById('stat-historial-eventos');
+  const vehiculosAtendidos = document.getElementById('stat-historial-vehiculos');
+  const contenedorTipos = document.getElementById('dashboard-historial-tipos');
+
+  try {
+    const estadisticas = await apiFetch('/api/historial/estadisticas');
+
+    // Total de eventos técnicos
+    totalEventos.textContent = estadisticas.totalEventos ?? 0;
+
+    // Vehículos atendidos
+    vehiculosAtendidos.textContent = estadisticas.vehiculosAtendidos ?? 0;
+
+    // Eventos agrupados por tipo
+    const porTipo = estadisticas.porTipo || [];
+
+    if (porTipo.length === 0) {
+      contenedorTipos.innerHTML = empty('No hay eventos técnicos registrados');
+      return;
+    }
+
+    const nombresTipos = {
+      DIAGNOSTICO: 'Diagnóstico',
+      MANTENIMIENTO: 'Mantenimiento',
+      REPARACION: 'Reparación',
+      INSPECCION_CDA: 'Inspección CDA'
+    };
+
+    contenedorTipos.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tipo de evento</th>
+            <th>Cantidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${porTipo.map(item => `
+            <tr>
+              <td>${nombresTipos[item.tipoEvento] || item.tipoEvento.replace(/_/g, ' ')}</td>
+              <td>
+                <strong style="color:var(--gold)">
+                  ${item.cantidad}
+                </strong>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+  } catch (err) {
+    totalEventos.textContent = '—';
+    vehiculosAtendidos.textContent = '—';
+
+    contenedorTipos.innerHTML = empty(
+      'No fue posible cargar las estadísticas del historial técnico'
+    );
+
+    console.error('Error cargando estadísticas de MongoDB:', err);
+  }
 }
 
 // ─── CLIENTES ───
@@ -104,27 +173,29 @@ async function cargarClientes() {
           <td class="muted">${c.direccion ?? '—'}</td>
         </tr>`).join('')}</tbody>
       </table>`;
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 async function guardarCliente() {
   try {
-    await apiFetch('/api/clientes', { method: 'POST', body: JSON.stringify({
-      cedula:    document.getElementById('c-cedula').value,
-      nombre:    document.getElementById('c-nombre').value,
-      apellido:  document.getElementById('c-apellido').value,
-      telefono:  document.getElementById('c-telefono').value,
-      email:     document.getElementById('c-email').value,
-      direccion: document.getElementById('c-direccion').value,
-      placa:     document.getElementById('c-placa').value,
-      marca:     document.getElementById('c-marca').value,
-      modelo:    document.getElementById('c-modelo').value,
-      anio:      +document.getElementById('c-anio').value,
-      color:     document.getElementById('c-color').value,
-      cilindraje:+document.getElementById('c-cilindraje').value || null,
-      kmActual:  +document.getElementById('c-km').value
-    })});
+    await apiFetch('/api/clientes', {
+      method: 'POST', body: JSON.stringify({
+        cedula: document.getElementById('c-cedula').value,
+        nombre: document.getElementById('c-nombre').value,
+        apellido: document.getElementById('c-apellido').value,
+        telefono: document.getElementById('c-telefono').value,
+        email: document.getElementById('c-email').value,
+        direccion: document.getElementById('c-direccion').value,
+        placa: document.getElementById('c-placa').value,
+        marca: document.getElementById('c-marca').value,
+        modelo: document.getElementById('c-modelo').value,
+        anio: +document.getElementById('c-anio').value,
+        color: document.getElementById('c-color').value,
+        cilindraje: +document.getElementById('c-cilindraje').value || null,
+        kmActual: +document.getElementById('c-km').value
+      })
+    });
     toast('Cliente registrado'); closeModal('modal-cliente'); cargarClientes();
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 
 // ─── VEHICULOS ───
@@ -136,7 +207,7 @@ async function cargarVehiculos() {
     if (!data.length) { document.getElementById('tabla-vehiculos').innerHTML = empty(); return; }
     document.getElementById('tabla-vehiculos').innerHTML =
       `<table class="data-table">
-        <thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Año</th><th>Km</th><th>Cliente</th></tr></thead>
+        <thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Año</th><th>Km</th><th>Cliente</th><th>Historial</th></tr></thead>
         <tbody>${data.map(v => `<tr>
           <td><code style="color:var(--gold);font-size:0.78rem">${v.placa}</code></td>
           <td>${v.marca}</td>
@@ -144,23 +215,288 @@ async function cargarVehiculos() {
           <td class="muted">${v.anio}</td>
           <td class="muted">${(v.kmActual || 0).toLocaleString()} km</td>
           <td class="muted">${v.nombreCliente ?? '—'}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="abrirHistorial(${v.vehiculoId}, '${v.placa}', '${v.marca} ${v.modelo}')"><i class="bi bi-clock-history"></i> Historial</button></td>
         </tr>`).join('')}</tbody>
       </table>`;
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 async function guardarVehiculo() {
   try {
-    await apiFetch('/api/vehiculos', { method: 'POST', body: JSON.stringify({
-      clienteId: +document.getElementById('v-clienteid').value,
-      placa:     document.getElementById('v-placa').value,
-      marca:     document.getElementById('v-marca').value,
-      modelo:    document.getElementById('v-modelo').value,
-      anio:      +document.getElementById('v-anio').value,
-      color:     document.getElementById('v-color').value,
-      kmActual:  +document.getElementById('v-km').value
-    })});
+    await apiFetch('/api/vehiculos', {
+      method: 'POST', body: JSON.stringify({
+        clienteId: +document.getElementById('v-clienteid').value,
+        placa: document.getElementById('v-placa').value,
+        marca: document.getElementById('v-marca').value,
+        modelo: document.getElementById('v-modelo').value,
+        anio: +document.getElementById('v-anio').value,
+        color: document.getElementById('v-color').value,
+        kmActual: +document.getElementById('v-km').value
+      })
+    });
     toast('Vehiculo registrado'); closeModal('modal-vehiculo'); cargarVehiculos();
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+// ─── HISTORIAL TECNICO ───
+
+let historialVehiculoActual = null;
+let historialEventoEditando = null;
+
+async function abrirHistorial(vehiculoId, placa, descripcion) {
+  historialVehiculoActual = vehiculoId;
+  historialEventoEditando = null;
+
+  document.getElementById('historial-vehiculo-info').textContent =
+    `${placa} · ${descripcion} · ID ${vehiculoId}`;
+
+  limpiarFormularioHistorial();
+  ocultarFormularioHistorial();
+
+  openModal('modal-historial');
+  await cargarHistorialVehiculo();
+}
+
+async function cargarHistorialVehiculo() {
+  const cont = document.getElementById('lista-historial');
+  cont.innerHTML = loading();
+
+  try {
+    const data = await apiFetch(
+      `/api/historial/vehiculo/${historialVehiculoActual}`
+    );
+
+    if (!data || data.length === 0) {
+      cont.innerHTML = empty(
+        'Este vehículo todavía no tiene eventos técnicos registrados'
+      );
+      return;
+    }
+
+    cont.innerHTML = `
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Técnico</th>
+              <th>Detalle</th>
+              <th>Km</th>
+              <th>Observaciones</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(item => `
+              <tr>
+                <td class="muted">${fmtDate(item.fechaEvento)}</td>
+                <td>${String(item.tipoEvento).replace(/_/g, ' ')}</td>
+                <td>
+                  ${item.tecnico?.nombre ?? '—'}<br>
+                  <small class="muted">
+                    ${item.tecnico?.especialidad ?? ''}
+                  </small>
+                </td>
+                <td>${item.detalle?.descripcion ?? '—'}</td>
+                <td class="muted">
+                  ${item.detalle?.kilometraje ?? '—'}
+                </td>
+                <td class="muted">
+                  ${item.observaciones ?? '—'}
+                </td>
+                <td>
+                  <div class="actions">
+                    <button
+                      class="btn btn-icon"
+                      title="Editar evento"
+                      onclick="editarHistorial('${item.id}')">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+
+                    <button
+                      class="btn btn-icon"
+                      title="Eliminar evento"
+                      style="color:var(--danger)"
+                      onclick="eliminarHistorial('${item.id}')">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  } catch (err) {
+    cont.innerHTML = empty(err.message);
+    toast(err.message, 'error');
+  }
+}
+
+function mostrarFormularioHistorial() {
+  historialEventoEditando = null;
+  limpiarFormularioHistorial();
+
+  document.querySelector('#historial-formulario h6').textContent =
+    'REGISTRAR EVENTO TECNICO';
+
+  document.querySelector(
+    '#historial-formulario button.btn-primary'
+  ).textContent = 'Guardar evento';
+
+  document.getElementById('historial-formulario').classList.remove('d-none');
+}
+
+function ocultarFormularioHistorial() {
+  document.getElementById('historial-formulario').classList.add('d-none');
+}
+
+function limpiarFormularioHistorial() {
+  document.getElementById('h-tipo').value = 'DIAGNOSTICO';
+  document.getElementById('h-fecha').value =
+    new Date().toISOString().slice(0, 10);
+  document.getElementById('h-tecnico').value = '';
+  document.getElementById('h-especialidad').value = '';
+  document.getElementById('h-km').value = '';
+  document.getElementById('h-detalle').value = '';
+  document.getElementById('h-observaciones').value = '';
+  document.getElementById('h-recomendaciones').value = '';
+}
+
+async function editarHistorial(id) {
+  try {
+    const evento = await apiFetch(`/api/historial/${id}`);
+
+    historialEventoEditando = id;
+
+    document.getElementById('h-tipo').value =
+      evento.tipoEvento ?? 'DIAGNOSTICO';
+
+    document.getElementById('h-fecha').value =
+      evento.fechaEvento
+        ? new Date(evento.fechaEvento).toISOString().slice(0, 10)
+        : '';
+
+    document.getElementById('h-tecnico').value =
+      evento.tecnico?.nombre ?? '';
+
+    document.getElementById('h-especialidad').value =
+      evento.tecnico?.especialidad ?? '';
+
+    document.getElementById('h-km').value =
+      evento.detalle?.kilometraje ?? '';
+
+    document.getElementById('h-detalle').value =
+      evento.detalle?.descripcion ?? '';
+
+    document.getElementById('h-observaciones').value =
+      evento.observaciones ?? '';
+
+    document.getElementById('h-recomendaciones').value =
+      evento.recomendaciones ?? '';
+
+    document.querySelector('#historial-formulario h6').textContent =
+      'EDITAR EVENTO TECNICO';
+
+    document.querySelector(
+      '#historial-formulario button.btn-primary'
+    ).textContent = 'Actualizar evento';
+
+    document.getElementById('historial-formulario').classList.remove('d-none');
+
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function guardarHistorial() {
+  try {
+    const fecha = document.getElementById('h-fecha').value;
+    const descripcion =
+      document.getElementById('h-detalle').value.trim();
+    const tecnico =
+      document.getElementById('h-tecnico').value.trim();
+
+    if (!fecha || !descripcion || !tecnico) {
+      toast('Completa fecha, técnico y detalle del evento', 'error');
+      return;
+    }
+
+    const datos = {
+      vehiculoId: historialVehiculoActual,
+      tipoEvento: document.getElementById('h-tipo').value,
+      fechaEvento: `${fecha}T12:00:00Z`,
+      tecnico: {
+        nombre: tecnico,
+        especialidad:
+          document.getElementById('h-especialidad').value.trim()
+      },
+      detalle: {
+        descripcion,
+        kilometraje:
+          Number(document.getElementById('h-km').value) || null
+      },
+      observaciones:
+        document.getElementById('h-observaciones').value.trim(),
+      recomendaciones:
+        document.getElementById('h-recomendaciones').value.trim()
+    };
+
+    if (historialEventoEditando) {
+      await apiFetch(`/api/historial/${historialEventoEditando}`, {
+        method: 'PUT',
+        body: JSON.stringify(datos)
+      });
+
+      toast('Evento técnico actualizado correctamente');
+
+    } else {
+      await apiFetch('/api/historial', {
+        method: 'POST',
+        body: JSON.stringify(datos)
+      });
+
+      toast('Evento técnico registrado en MongoDB');
+    }
+
+    historialEventoEditando = null;
+    limpiarFormularioHistorial();
+    ocultarFormularioHistorial();
+
+    await cargarHistorialVehiculo();
+
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function eliminarHistorial(id) {
+  const confirmar = confirm(
+    '¿Estás seguro de eliminar este evento del historial técnico? Esta acción no se puede deshacer.'
+  );
+
+  if (!confirmar) return;
+
+  try {
+    await apiFetch(`/api/historial/${id}`, {
+      method: 'DELETE'
+    });
+
+    if (historialEventoEditando === id) {
+      historialEventoEditando = null;
+      limpiarFormularioHistorial();
+      ocultarFormularioHistorial();
+    }
+
+    toast('Evento técnico eliminado correctamente');
+
+    await cargarHistorialVehiculo();
+
+  } catch (err) {
+    toast(err.message, 'error');
+  }
 }
 
 // ─── ORDENES ───
@@ -184,19 +520,21 @@ async function cargarOrdenes() {
           <td><div class="actions"><button class="btn btn-icon" onclick="verOrden(${o.ordenId})"><i class="bi bi-eye"></i></button></div></td>
         </tr>`).join('')}</tbody>
       </table>`;
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 async function guardarOrden() {
   try {
-    await apiFetch('/api/ordenes', { method: 'POST', body: JSON.stringify({
-      vehiculoId:   +document.getElementById('o-vehiculoid').value,
-      empleadoId:   +document.getElementById('o-empleadoid').value,
-      kmIngreso:    +document.getElementById('o-km').value,
-      fechaEstimada: document.getElementById('o-fecha').value || null,
-      diagnostico:   document.getElementById('o-diagnostico').value
-    })});
+    await apiFetch('/api/ordenes', {
+      method: 'POST', body: JSON.stringify({
+        vehiculoId: +document.getElementById('o-vehiculoid').value,
+        empleadoId: +document.getElementById('o-empleadoid').value,
+        kmIngreso: +document.getElementById('o-km').value,
+        fechaEstimada: document.getElementById('o-fecha').value || null,
+        diagnostico: document.getElementById('o-diagnostico').value
+      })
+    });
     toast('Orden creada'); closeModal('modal-orden'); cargarOrdenes();
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 
 let _ordenActual = null;
@@ -209,7 +547,7 @@ async function verOrden(id) {
   try {
     const d = await apiFetch(`/api/ordenes/${id}`);
     const o = d.orden;
-    const editable = ['PENDIENTE','EN_PROCESO'].includes(o.estado);
+    const editable = ['PENDIENTE', 'EN_PROCESO'].includes(o.estado);
     document.getElementById('btn-cerrar-orden').classList.toggle('d-none', !editable);
     if (editable) { await Promise.all([cargarSelectServicios(), cargarSelectRepuestos()]); }
 
@@ -246,7 +584,7 @@ async function verOrden(id) {
         </div>
       </div>
       ${o.facturaId ? `<div style="margin-top:1rem;padding:1rem 1.2rem;background:var(--success-dim);border:1px solid rgba(76,175,114,0.2);border-radius:10px;display:flex;align-items:center;gap:0.7rem"><i class="bi bi-receipt" style="color:var(--success)"></i><span style="font-size:0.85rem">Factura <strong style="color:var(--success)">#${o.facturaId}</strong> — Total: <strong>${fmt(o.totalFacturado)}</strong> — ${o.estadoPago}</span></div>` : ''}`;
-  } catch(err) {
+  } catch (err) {
     document.getElementById('detalle-orden-body').innerHTML =
       `<div style="padding:2rem;color:var(--danger);text-align:center">${err.message}</div>`;
   }
@@ -263,33 +601,39 @@ async function cargarSelectRepuestos() {
 }
 async function guardarServicioOrden() {
   try {
-    await apiFetch(`/api/ordenes/${_ordenActual}/servicios`, { method: 'POST', body: JSON.stringify({
-      servicioId: +document.getElementById('as-servicioid').value,
-      cantidad:   +document.getElementById('as-cantidad').value,
-      manoObra:   +document.getElementById('as-mano').value
-    })});
+    await apiFetch(`/api/ordenes/${_ordenActual}/servicios`, {
+      method: 'POST', body: JSON.stringify({
+        servicioId: +document.getElementById('as-servicioid').value,
+        cantidad: +document.getElementById('as-cantidad').value,
+        manoObra: +document.getElementById('as-mano').value
+      })
+    });
     toast('Servicio agregado'); closeModal('modal-add-servicio'); verOrden(_ordenActual);
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 async function guardarRepuestoOrden() {
   try {
-    await apiFetch(`/api/ordenes/${_ordenActual}/repuestos`, { method: 'POST', body: JSON.stringify({
-      repuestoId: +document.getElementById('ar-repuestoid').value,
-      cantidad:   +document.getElementById('ar-cantidad').value
-    })});
+    await apiFetch(`/api/ordenes/${_ordenActual}/repuestos`, {
+      method: 'POST', body: JSON.stringify({
+        repuestoId: +document.getElementById('ar-repuestoid').value,
+        cantidad: +document.getElementById('ar-cantidad').value
+      })
+    });
     toast('Repuesto agregado'); closeModal('modal-add-repuesto'); verOrden(_ordenActual);
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 function abrirCierreOrden() { openModal('modal-cerrar-orden'); }
 async function cerrarOrden() {
   try {
-    const res = await apiFetch(`/api/ordenes/${_ordenActual}/cerrar`, { method: 'POST', body: JSON.stringify({
-      observaciones: document.getElementById('co-obs').value,
-      metodoPago:    document.getElementById('co-metodo').value
-    })});
+    const res = await apiFetch(`/api/ordenes/${_ordenActual}/cerrar`, {
+      method: 'POST', body: JSON.stringify({
+        observaciones: document.getElementById('co-obs').value,
+        metodoPago: document.getElementById('co-metodo').value
+      })
+    });
     toast(`Orden cerrada — Factura #${res.facturaId} — Total: ${fmt(res.total)}`);
     closeModal('modal-cerrar-orden'); closeModal('modal-detalle-orden'); cargarOrdenes();
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 
 // ─── REPUESTOS ───
@@ -302,8 +646,8 @@ async function cargarRepuestos() {
       `<table class="data-table">
         <thead><tr><th>Referencia</th><th>Nombre</th><th>Proveedor</th><th>P. Venta</th><th>Stock</th><th>Min</th></tr></thead>
         <tbody>${data.map(r => {
-          const low = r.stockActual <= r.stockMinimo;
-          return `<tr>
+        const low = r.stockActual <= r.stockMinimo;
+        return `<tr>
             <td><code style="color:var(--text-2);font-size:0.78rem">${r.referencia}</code></td>
             <td>${r.nombre}</td>
             <td class="muted">${r.nombreProveedor ?? '—'}</td>
@@ -311,24 +655,26 @@ async function cargarRepuestos() {
             <td style="${low ? 'color:var(--danger);font-weight:600' : ''}">${r.stockActual}</td>
             <td class="muted">${r.stockMinimo}</td>
           </tr>`;
-        }).join('')}</tbody>
+      }).join('')}</tbody>
       </table>`;
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 async function guardarRepuesto() {
   try {
-    await apiFetch('/api/repuestos', { method: 'POST', body: JSON.stringify({
-      proveedorId:  +document.getElementById('r-proveedorid').value,
-      referencia:    document.getElementById('r-referencia').value,
-      nombre:        document.getElementById('r-nombre').value,
-      descripcion:   document.getElementById('r-descripcion').value,
-      precioCompra: +document.getElementById('r-pcompra').value,
-      precioVenta:  +document.getElementById('r-pventa').value,
-      stockActual:  +document.getElementById('r-stock').value,
-      stockMinimo:  +document.getElementById('r-stockmin').value
-    })});
+    await apiFetch('/api/repuestos', {
+      method: 'POST', body: JSON.stringify({
+        proveedorId: +document.getElementById('r-proveedorid').value,
+        referencia: document.getElementById('r-referencia').value,
+        nombre: document.getElementById('r-nombre').value,
+        descripcion: document.getElementById('r-descripcion').value,
+        precioCompra: +document.getElementById('r-pcompra').value,
+        precioVenta: +document.getElementById('r-pventa').value,
+        stockActual: +document.getElementById('r-stock').value,
+        stockMinimo: +document.getElementById('r-stockmin').value
+      })
+    });
     toast('Repuesto registrado'); closeModal('modal-repuesto'); cargarRepuestos();
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 
 // ─── CDA ───
@@ -350,18 +696,20 @@ async function cargarCDA() {
           <td class="muted">${fmtDate(r.fechaVencimiento)}</td>
         </tr>`).join('')}</tbody>
       </table>`;
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 async function guardarCDA() {
   try {
-    await apiFetch('/api/revisionescda', { method: 'POST', body: JSON.stringify({
-      vehiculoId:   +document.getElementById('cda-vehiculoid').value,
-      empleadoId:   +document.getElementById('cda-empleadoid').value,
-      resultado:     document.getElementById('cda-resultado').value,
-      observaciones: document.getElementById('cda-obs').value
-    })});
+    await apiFetch('/api/revisionescda', {
+      method: 'POST', body: JSON.stringify({
+        vehiculoId: +document.getElementById('cda-vehiculoid').value,
+        empleadoId: +document.getElementById('cda-empleadoid').value,
+        resultado: document.getElementById('cda-resultado').value,
+        observaciones: document.getElementById('cda-obs').value
+      })
+    });
     toast('Revision CDA registrada'); closeModal('modal-cda'); cargarCDA();
-  } catch(err) { toast(err.message, 'error'); }
+  } catch (err) { toast(err.message, 'error'); }
 }
 
 // ─── INIT ───
@@ -371,7 +719,7 @@ async function inicializar() {
     const opts = empleados.map(e => `<option value="${e.empleadoId}">${e.nombre} ${e.apellido} — ${e.nombreCargo}</option>`).join('');
     document.getElementById('o-empleadoid').innerHTML = opts;
     document.getElementById('cda-empleadoid').innerHTML = opts;
-  } catch(_) {}
+  } catch (_) { }
   cargarDashboard();
 }
 inicializar();
