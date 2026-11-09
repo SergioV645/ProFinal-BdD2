@@ -619,7 +619,7 @@
         MAX(r.fecha_revision)    AS ultima_revision,
         MAX(r.fecha_vencimiento) AS vencimiento_cda,
         DATEDIFF(CURRENT_DATE, MAX(r.fecha_vencimiento)) AS dias_vencida
-    FROM vehiculos vLista
+    FROM vehiculos v
     JOIN clientes c ON c.cliente_id = v.cliente_id
     LEFT JOIN revisiones_cda r ON r.vehiculo_id = v.vehiculo_id
     GROUP BY v.vehiculo_id, v.placa, v.marca, v.modelo, c.nombre, c.telefono

@@ -7,6 +7,7 @@ import (
 
 	"taller_vehiculos/db"
 	"taller_vehiculos/handlers"
+	"taller_vehiculos/mongodb"
 )
 
 func main() {
@@ -16,37 +17,38 @@ func main() {
 	}
 	db.Connect(dsn)
 
+	if err := mongodb.Connect(); err != nil {
+		log.Fatal("Error conectando a MongoDB: ", err)
+	}
+	log.Println("Conectado a MongoDB Atlas correctamente")
+
 	mux := http.NewServeMux()
 
-	// Frontend estatico
 	mux.Handle("/", http.FileServer(http.Dir("./public")))
-
-	// Clientes
 	mux.HandleFunc("/api/clientes", handlers.Clientes)
 	mux.HandleFunc("/api/clientes/", handlers.ClienteById)
-
-	// Vehiculos
 	mux.HandleFunc("/api/vehiculos", handlers.Vehiculos)
-
-	// Empleados
+	mux.HandleFunc("/api/historial", handlers.Historial)
+	mux.HandleFunc("/api/historial/", handlers.Historial)
 	mux.HandleFunc("/api/empleados", handlers.Empleados)
-
-	// Servicios
 	mux.HandleFunc("/api/servicios", handlers.Servicios)
-
-	// Repuestos
 	mux.HandleFunc("/api/repuestos", handlers.Repuestos)
 	mux.HandleFunc("/api/repuestos/bajo-stock", handlers.RepuestosBajoStock)
-
-	// Ordenes
 	mux.HandleFunc("/api/ordenes", handlers.Ordenes)
 	mux.HandleFunc("/api/ordenes/", handlers.OrdenDetalle)
-
-	// CDA
 	mux.HandleFunc("/api/revisionescda", handlers.RevisionesCDA)
 
 	log.Println("Servidor corriendo en http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
+
+	err := http.ListenAndServe(":8080", corsMiddleware(mux))
+
+	if err != nil && err != http.ErrServerClosed {
+		log.Println("Error en el servidor:", err)
+	}
+
+	if err := mongodb.Disconnect(); err != nil {
+		log.Println("Error cerrando MongoDB:", err)
+	}
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -54,10 +56,12 @@ func corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }
