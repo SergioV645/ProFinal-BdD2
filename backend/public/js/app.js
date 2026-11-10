@@ -335,8 +335,17 @@ async function guardarRepuesto() {
 async function cargarCDA() {
   document.getElementById('tabla-cda').innerHTML = loading();
   try {
-    const data = await apiFetch('/api/revisionescda');
-    if (!data.length) { document.getElementById('tabla-cda').innerHTML = empty(); return; }
+    const placa = document.getElementById('buscar-cda-placa').value.trim();
+    const query = placa ? `?placa=${encodeURIComponent(placa)}` : '';
+    const revisiones = await apiFetch(`/api/revisionescda${query}`);
+    const placaNormalizada = placa.toUpperCase();
+    const data = placaNormalizada
+      ? revisiones.filter(r => String(r.placa ?? '').toUpperCase().includes(placaNormalizada))
+      : revisiones;
+    if (!data.length) {
+      document.getElementById('tabla-cda').innerHTML = empty(placa ? 'No se encontraron revisiones para esa placa' : 'Sin registros');
+      return;
+    }
     document.getElementById('tabla-cda').innerHTML =
       `<table class="data-table">
         <thead><tr><th>Placa</th><th>Vehiculo</th><th>Cliente</th><th>Inspector</th><th>Fecha</th><th>Resultado</th><th>Vencimiento</th></tr></thead>

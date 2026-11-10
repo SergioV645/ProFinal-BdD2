@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"taller_vehiculos/db"
 )
@@ -12,8 +13,7 @@ func RevisionesCDA(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		rows, err := db.DB.Query(
-			`SELECT r.revision_id, r.vehiculo_id, r.empleado_id, r.fecha_revision,
+		query := `SELECT r.revision_id, r.vehiculo_id, r.empleado_id, r.fecha_revision,
 			 r.resultado, r.observaciones, r.fecha_vencimiento,
 			 v.placa, CONCAT(v.marca,' ',v.modelo) AS vehiculo_desc,
 			 CONCAT(e.nombre,' ',e.apellido) AS inspector,
@@ -21,8 +21,15 @@ func RevisionesCDA(w http.ResponseWriter, r *http.Request) {
 			 FROM revisiones_cda r
 			 JOIN vehiculos  v ON v.vehiculo_id = r.vehiculo_id
 			 JOIN clientes   c ON c.cliente_id  = v.cliente_id
-			 JOIN empleados  e ON e.empleado_id = r.empleado_id
-			 ORDER BY r.fecha_revision DESC`)
+			 JOIN empleados  e ON e.empleado_id = r.empleado_id`
+		args := []interface{}{}
+		if placa := strings.TrimSpace(r.URL.Query().Get("placa")); placa != "" {
+			query += " WHERE UPPER(v.placa) LIKE ?"
+			args = append(args, "%"+strings.ToUpper(placa)+"%")
+		}
+		query += " ORDER BY r.fecha_revision DESC"
+
+		rows, err := db.DB.Query(query, args...)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
