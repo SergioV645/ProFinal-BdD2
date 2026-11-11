@@ -661,3 +661,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .form-row { grid-template-columns: 1fr; }
   .form-group.col-span-2 { grid-column: span 1; }
 }
+
+
+/* Espaciado del formulario de proveedores y acciones de tablas */
+.rp-actions { margin-top: 0.85rem; margin-bottom: 1.25rem; display: flex; justify-content: flex-start; }
+#modal-proveedores-repuesto .form-row { row-gap: 0.9rem; }
+#modal-proveedores-repuesto .divider { margin-top: 0.5rem; }
+#tabla-cda .data-table td:last-child, #tabla-cda .data-table th:last-child { text-align: center; white-space: nowrap; }

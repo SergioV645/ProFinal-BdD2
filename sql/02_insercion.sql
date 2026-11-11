@@ -1,6 +1,6 @@
 -- ============================================================
 -- TALLER DE VEHICULOS & CDA
--- Script 02: Datos de prueba
+-- Script 02: Datos de prueba (incluye proveedores y checklist CDA)
 -- ============================================================
 
 USE taller_vehiculos;
@@ -178,6 +178,77 @@ INSERT INTO revisiones_cda (vehiculo_id, empleado_id, fecha_revision, resultado,
     (5, 5, '2025-06-15', 'REPROBADO',                  'Amortiguadores en mal estado, frenos desgastados', NULL),
     (4, 5, '2026-03-01', 'APROBADO',                   'Todos los sistemas en buen estado',            '2027-03-01'),
     (2, 5, '2026-09-05', 'APROBADO',                   'Vehiculo nuevo, sin observaciones',            '2027-09-05');
+
+
+
+-- -----------------------------------------------------------
+-- REPUESTO_PROVEEDOR
+-- Registrar el proveedor principal de cada repuesto y un proveedor
+-- alternativo de prueba para los tres primeros cuando exista.
+-- -----------------------------------------------------------
+INSERT INTO repuesto_proveedor (repuesto_id, proveedor_id, precio_compra, dias_entrega)
+SELECT r.repuesto_id, r.proveedor_id, r.precio_compra, 2
+FROM repuestos r
+WHERE r.precio_compra > 0;
+
+INSERT INTO repuesto_proveedor (repuesto_id, proveedor_id, precio_compra, dias_entrega)
+SELECT r.repuesto_id,
+       p.proveedor_id,
+       ROUND(r.precio_compra * 1.08, 2),
+       4
+FROM repuestos r
+JOIN proveedores p
+  ON p.proveedor_id = (
+      SELECT MIN(p2.proveedor_id)
+      FROM proveedores p2
+      WHERE p2.proveedor_id <> r.proveedor_id
+  )
+WHERE r.repuesto_id <= 3
+  AND r.precio_compra > 0;
+
+-- -----------------------------------------------------------
+-- ITEMS_INSPECCION
+-- Catalogo inicial de 12 puntos de inspeccion CDA.
+-- -----------------------------------------------------------
+INSERT INTO items_inspeccion (nombre, grupo, es_critico) VALUES
+    ('Desgaste de pastillas',   'Frenos',      FALSE),
+    ('Eficacia de frenado',     'Frenos',      TRUE),
+    ('Luces delanteras',        'Luces',       FALSE),
+    ('Luz de freno',            'Luces',       FALSE),
+    ('Emision de gases',        'Emisiones',   TRUE),
+    ('Amortiguadores',          'Suspension',  TRUE),
+    ('Rotulas y terminales',    'Direccion',   TRUE),
+    ('Holgura de volante',      'Direccion',   FALSE),
+    ('Profundidad de llantas',  'Llantas',     TRUE),
+    ('Presion de llantas',      'Llantas',     FALSE),
+    ('Cinturones de seguridad', 'Seguridad',   TRUE),
+    ('Limpiabrisas',            'Seguridad',   FALSE);
+
+-- -----------------------------------------------------------
+-- DETALLE_REVISION_CDA
+-- Crear un detalle inicial para cada item de cada revision existente.
+-- -----------------------------------------------------------
+INSERT INTO detalle_revision_cda (revision_id, item_id, resultado, observacion)
+SELECT r.revision_id,
+       i.item_id,
+       CASE
+           WHEN r.resultado = 'APROBADO_CON_OBSERVACIONES'
+                AND i.nombre = 'Desgaste de pastillas' THEN 'NO_CONFORME'
+           WHEN r.resultado = 'REPROBADO'
+                AND i.nombre = 'Amortiguadores' THEN 'NO_CONFORME'
+           ELSE 'CONFORME'
+       END,
+       CASE
+           WHEN r.resultado = 'APROBADO_CON_OBSERVACIONES'
+                AND i.nombre = 'Desgaste de pastillas'
+               THEN 'En el limite, programar cambio'
+           WHEN r.resultado = 'REPROBADO'
+                AND i.nombre = 'Amortiguadores'
+               THEN 'En mal estado, reemplazar'
+           ELSE NULL
+       END
+FROM revisiones_cda r
+CROSS JOIN items_inspeccion i;
 
 SELECT * FROM cargos;
 SELECT * FROM categorias_servicio;

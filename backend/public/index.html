@@ -574,6 +574,43 @@
     </div>
   </div>
 
+  <!-- PROVEEDORES ALTERNATIVOS DEL REPUESTO -->
+  <div class="modal fade" id="modal-proveedores-repuesto" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">PROVEEDORES DEL REPUESTO</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="rp-repuestoid">
+          <div class="form-row" style="--cols:3">
+            <div class="form-group"><label class="form-label">Proveedor</label><select class="form-select" id="rp-proveedor"></select></div>
+            <div class="form-group"><label class="form-label">Precio de compra</label><input type="number" min="0.01" step="0.01" class="form-control" id="rp-precio"></div>
+            <div class="form-group"><label class="form-label">Días de entrega</label><input type="number" min="0" class="form-control" id="rp-dias" value="2"></div>
+          </div>
+          <div class="rp-actions"><button class="btn btn-primary btn-sm" onclick="guardarProveedorRepuesto()">Asociar proveedor</button></div>
+          <div class="divider"></div>
+          <div id="rp-lista"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETALLE DE INSPECCION CDA -->
+  <div class="modal fade" id="modal-detalle-cda" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="detalle-cda-titulo">DETALLE REVISION CDA</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="detalle-cda-body"></div>
+        <div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cerrar</button></div>
+      </div>
+    </div>
+  </div>
+
   <!-- CDA -->
   <div class="modal fade" id="modal-cda" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -597,6 +634,12 @@
             </div>
             <div class="form-group col-span-2"><label class="form-label">Observaciones</label><textarea
                 class="form-control" id="cda-obs"></textarea></div>
+            <div class="form-group col-span-2">
+              <label class="form-label">Checklist de inspección</label>
+              <div id="cda-checklist" class="panel-body" style="max-height:260px;overflow:auto">
+                <small class="muted">Cargando elementos...</small>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button><button

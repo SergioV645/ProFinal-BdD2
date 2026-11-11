@@ -6,7 +6,19 @@ function fmt(n) {
 }
 function fmtDate(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('es-CO');
+
+  if (typeof d === 'string') {
+    const match = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    if (match) {
+      const [, anio, mes, dia] = match;
+      return `${dia}/${mes}/${anio}`;
+    }
+  }
+
+  return new Date(d).toLocaleDateString('es-CO', {
+    timeZone: 'America/Bogota'
+  });
 }
 function badgeEstado(e) {
   if (!e) return '—';
@@ -79,7 +91,7 @@ async function cargarDashboard() {
 
     document.getElementById('dashboard-stock').innerHTML = stock.length === 0
       ? `<div class="empty-state" style="color:var(--success)">Todo el stock OK</div>`
-      : `<table class="data-table"><thead><tr><th>Repuesto</th><th>Stock</th><th>Min</th></tr></thead><tbody>
+      : `<table class="data-table"><thead><tr><th>Repuesto</th><th>Stock</th><th>Min</th><th>Proveedores</th></tr></thead><tbody>
           ${stock.map(r => `<tr>
             <td>${r.nombre ?? r.Nombre}</td>
             <td style="color:var(--danger);font-weight:600">${r.stock_actual ?? r.StockActual}</td>
@@ -671,7 +683,7 @@ async function cargarRepuestos() {
     if (!data.length) { document.getElementById('tabla-repuestos').innerHTML = empty(); return; }
     document.getElementById('tabla-repuestos').innerHTML =
       `<table class="data-table">
-        <thead><tr><th>Referencia</th><th>Nombre</th><th>Proveedor</th><th>P. Venta</th><th>Stock</th><th>Min</th></tr></thead>
+        <thead><tr><th>Referencia</th><th>Nombre</th><th>Proveedor</th><th>P. Venta</th><th>Stock</th><th>Min</th><th>Proveedores</th></tr></thead>
         <tbody>${data.map(r => {
         const low = r.stockActual <= r.stockMinimo;
         return `<tr>
@@ -681,6 +693,7 @@ async function cargarRepuestos() {
             <td>${fmt(r.precioVenta)}</td>
             <td style="${low ? 'color:var(--danger);font-weight:600' : ''}">${r.stockActual}</td>
             <td class="muted">${r.stockMinimo}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="abrirProveedoresRepuesto(${r.repuestoId})">Gestionar</button></td>
           </tr>`;
       }).join('')}</tbody>
       </table>`;
@@ -704,7 +717,66 @@ async function guardarRepuesto() {
   } catch (err) { toast(err.message, 'error'); }
 }
 
+// ─── PROVEEDORES POR REPUESTO ───
+async function abrirProveedoresRepuesto(repuestoId) {
+  document.getElementById('rp-repuestoid').value = repuestoId;
+  try {
+    const proveedores = await apiFetch('/api/proveedores');
+    document.getElementById('rp-proveedor').innerHTML = proveedores.map(p => `<option value="${p.proveedorId}">${p.nombre}</option>`).join('');
+    await cargarProveedoresRepuesto();
+    openModal('modal-proveedores-repuesto');
+  } catch (err) { toast(err.message, 'error'); }
+}
+async function cargarProveedoresRepuesto() {
+  const id = document.getElementById('rp-repuestoid').value;
+  const data = await apiFetch(`/api/repuestos/${id}/proveedores`);
+  document.getElementById('rp-lista').innerHTML = data.length ? `
+    <table class="data-table"><thead><tr><th>Proveedor</th><th>Precio compra</th><th>Entrega</th><th></th></tr></thead>
+    <tbody>${data.map(p => `<tr><td>${p.proveedor}</td><td>${fmt(p.precioCompra)}</td><td>${p.diasEntrega} días</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="eliminarProveedorRepuesto(${p.proveedorId})">Quitar</button></td></tr>`).join('')}</tbody></table>` : empty('Sin proveedores asociados');
+}
+async function guardarProveedorRepuesto() {
+  try {
+    const id = +document.getElementById('rp-repuestoid').value;
+    await apiFetch(`/api/repuestos/${id}/proveedores`, {method:'POST', body:JSON.stringify({
+      proveedorId:+document.getElementById('rp-proveedor').value,
+      precioCompra:+document.getElementById('rp-precio').value,
+      diasEntrega:+document.getElementById('rp-dias').value
+    })});
+    // Limpiar el formulario después de guardar para evitar repetir datos por accidente.
+    document.getElementById('rp-precio').value = '';
+    document.getElementById('rp-dias').value = '2';
+    const proveedorSelect = document.getElementById('rp-proveedor');
+    if (proveedorSelect) proveedorSelect.selectedIndex = 0;
+    toast('Proveedor asociado'); await cargarProveedoresRepuesto(); cargarRepuestos();
+  } catch(err) { toast(err.message,'error'); }
+}
+async function eliminarProveedorRepuesto(proveedorId) {
+  try {
+    const id=+document.getElementById('rp-repuestoid').value;
+    await apiFetch(`/api/repuestos/${id}/proveedores?proveedorId=${proveedorId}`,{method:'DELETE'});
+    toast('Proveedor eliminado'); await cargarProveedoresRepuesto(); cargarRepuestos();
+  } catch(err) { toast(err.message,'error'); }
+}
+
 // ─── CDA ───
+let revisionCDAEnEdicion = null;
+
+// Las observaciones se registran únicamente por elemento del checklist.
+// Ocultamos y retiramos el campo general heredado del HTML.
+function ocultarObservacionesGeneralesCDA() {
+  const campo = document.getElementById('cda-obs');
+  if (!campo) return;
+  const grupo = campo.closest('.form-group');
+  if (grupo) {
+    grupo.remove();
+    return;
+  }
+  const etiqueta = document.querySelector('label[for="cda-obs"]');
+  etiqueta?.remove();
+  campo.remove();
+}
+
 async function cargarCDA() {
   document.getElementById('tabla-cda').innerHTML = loading();
   try {
@@ -712,7 +784,7 @@ async function cargarCDA() {
     if (!data.length) { document.getElementById('tabla-cda').innerHTML = empty(); return; }
     document.getElementById('tabla-cda').innerHTML =
       `<table class="data-table">
-        <thead><tr><th>Placa</th><th>Vehiculo</th><th>Cliente</th><th>Inspector</th><th>Fecha</th><th>Resultado</th><th>Vencimiento</th></tr></thead>
+        <thead><tr><th>Placa</th><th>Vehiculo</th><th>Cliente</th><th>Inspector</th><th>Fecha</th><th>Resultado</th><th>Vencimiento</th><th>Acciones</th></tr></thead>
         <tbody>${data.map(r => `<tr>
           <td><code style="color:var(--gold);font-size:0.78rem">${r.placa ?? '—'}</code></td>
           <td>${r.vehiculoDesc ?? '—'}</td>
@@ -721,23 +793,167 @@ async function cargarCDA() {
           <td class="muted">${fmtDate(r.fechaRevision)}</td>
           <td>${badgeEstado(r.resultado)}</td>
           <td class="muted">${fmtDate(r.fechaVencimiento)}</td>
+          <td class="cda-actions"><button class="btn btn-ghost btn-sm" onclick="abrirDetalleCDA(${r.revisionId})">Detalle</button> <button class="btn btn-ghost btn-sm" onclick="editarRevisionCDA(${r.revisionId})">Editar</button> <button class="btn btn-danger btn-sm" onclick="eliminarRevisionCDA(${r.revisionId})">Eliminar</button></td>
         </tr>`).join('')}</tbody>
       </table>`;
   } catch (err) { toast(err.message, 'error'); }
 }
-async function guardarCDA() {
+async function abrirDetalleCDA(revisionId) {
+  const cont = document.getElementById('detalle-cda-body');
+  document.getElementById('detalle-cda-titulo').textContent = `REVISION CDA #${revisionId}`;
+  cont.innerHTML = loading();
+  openModal('modal-detalle-cda');
   try {
-    await apiFetch('/api/revisionescda', {
-      method: 'POST', body: JSON.stringify({
-        vehiculoId: +document.getElementById('cda-vehiculoid').value,
-        empleadoId: +document.getElementById('cda-empleadoid').value,
-        resultado: document.getElementById('cda-resultado').value,
-        observaciones: document.getElementById('cda-obs').value
-      })
+    const detalles = await apiFetch(`/api/revisionescda/${revisionId}/detalle`);
+    if (!detalles.length) { cont.innerHTML = empty('Esta revisión no tiene checklist registrado'); return; }
+    cont.innerHTML = `<table class="data-table"><thead><tr><th>Grupo</th><th>Elemento inspeccionado</th><th>Critico</th><th>Resultado</th><th>Observacion</th></tr></thead><tbody>
+      ${detalles.map(d => `<tr><td>${d.grupo ?? '—'}</td><td>${d.nombre ?? '—'}</td><td>${d.esCritico ? 'Sí' : 'No'}</td><td>${d.resultado === 'CONFORME' ? '<span class="badge badge-aprobado">Conforme</span>' : '<span class="badge badge-reprobado">No conforme</span>'}</td><td>${d.observacion || '—'}</td></tr>`).join('')}
+    </tbody></table>`;
+  } catch (err) { cont.innerHTML = `<div class="text-danger">${err.message}</div>`; }
+}
+
+async function editarRevisionCDA(revisionId) {
+  try {
+    const data = await apiFetch('/api/revisionescda');
+    const revision = data.find(r => Number(r.revisionId) === Number(revisionId));
+    if (!revision) throw new Error('No se encontró la revisión CDA.');
+    revisionCDAEnEdicion = Number(revisionId);
+    document.querySelector('#modal-cda .modal-title').textContent = `EDITAR REVISION CDA #${revisionId}`;
+    document.querySelector('#modal-cda .modal-footer .btn-primary').textContent = 'Guardar cambios';
+    document.getElementById('cda-vehiculoid').value = revision.vehiculoId;
+    document.getElementById('cda-empleadoid').value = revision.empleadoId;
+    document.getElementById('cda-resultado').value = revision.resultado;
+    await cargarChecklistCDA();
+    const detalles = await apiFetch(`/api/revisionescda/${revisionId}/detalle`);
+    detalles.forEach(d => {
+      const resultado = document.querySelector(`.cda-item-resultado[data-item-id="${d.itemId}"]`);
+      const observacion = document.querySelector(`.cda-item-obs[data-item-id="${d.itemId}"]`);
+      if (resultado) resultado.value = d.resultado;
+      if (observacion) observacion.value = d.observacion || '';
     });
-    toast('Revision CDA registrada'); closeModal('modal-cda'); cargarCDA();
+    openModal('modal-cda');
   } catch (err) { toast(err.message, 'error'); }
 }
+
+async function eliminarRevisionCDA(revisionId) {
+  if (!confirm(`¿Seguro que deseas eliminar la revisión CDA #${revisionId} y todo su checklist? Esta acción no se puede deshacer.`)) return;
+  try {
+    await apiFetch(`/api/revisionescda/${revisionId}`, { method: 'DELETE' });
+    toast('Revisión CDA eliminada correctamente');
+    await cargarCDA();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function cargarChecklistCDA() {
+  const cont = document.getElementById('cda-checklist');
+  try {
+    const items = await apiFetch('/api/items-inspeccion');
+    cont.innerHTML = items.map(item => `
+      <div class="form-row" style="--cols:3;align-items:center;border-bottom:1px solid var(--border);padding:8px 0">
+        <div class="form-group"><strong>${item.nombre}</strong><br><small class="muted">${item.grupo}${item.esCritico ? ' · Crítico' : ''}</small></div>
+        <div class="form-group"><select class="form-select cda-item-resultado" data-item-id="${item.itemId}">
+          <option value="CONFORME">Conforme</option><option value="NO_CONFORME">No conforme</option>
+        </select></div>
+        <div class="form-group"><input class="form-control cda-item-obs" data-item-id="${item.itemId}" placeholder="Observación"></div>
+      </div>`).join('');
+  } catch (err) { cont.innerHTML = `<small class="text-danger">${err.message}</small>`; }
+}
+function limpiarFormularioCDA() {
+  const vehiculo = document.getElementById('cda-vehiculoid');
+  const inspector = document.getElementById('cda-empleadoid');
+  const resultado = document.getElementById('cda-resultado');
+  const checklist = document.getElementById('cda-checklist');
+
+  // Cada revisión nueva comienza sin datos de la revisión anterior.
+  if (vehiculo) vehiculo.value = '';
+  if (inspector) inspector.value = '';
+  if (resultado) {
+    resultado.value = [...resultado.options].some(o => o.value === 'APROBADO')
+      ? 'APROBADO'
+      : (resultado.options[0]?.value || '');
+  }
+  if (checklist) checklist.innerHTML = '';
+
+  revisionCDAEnEdicion = null;
+  const titulo = document.querySelector('#modal-cda .modal-title');
+  const boton = document.querySelector('#modal-cda .modal-footer .btn-primary');
+  if (titulo) titulo.textContent = 'NUEVA REVISION CDA';
+  if (boton) boton.textContent = 'Guardar';
+}
+
+document.getElementById('modal-cda')?.addEventListener('show.bs.modal', async () => {
+  ocultarObservacionesGeneralesCDA();
+  if (!revisionCDAEnEdicion) {
+    limpiarFormularioCDA();
+    await cargarChecklistCDA();
+  }
+});
+
+async function guardarCDA() {
+  try {
+    ocultarObservacionesGeneralesCDA();
+
+    const detalles = [...document.querySelectorAll('.cda-item-resultado')].map(sel => ({
+      itemId: Number(sel.dataset.itemId),
+      resultado: sel.value,
+      observacion: document.querySelector(
+        `.cda-item-obs[data-item-id="${sel.dataset.itemId}"]`
+      )?.value.trim() || ''
+    }));
+
+    if (detalles.length === 0) {
+      toast('No se encontraron elementos del checklist para guardar', 'error');
+      return;
+    }
+
+    const payload = {
+      vehiculoId: Number(document.getElementById('cda-vehiculoid').value),
+      empleadoId: Number(document.getElementById('cda-empleadoid').value),
+      resultado: document.getElementById('cda-resultado').value
+    };
+
+    if (!payload.vehiculoId || !payload.empleadoId) {
+      toast('Selecciona el vehículo y el inspector', 'error');
+      return;
+    }
+
+    if (revisionCDAEnEdicion) {
+      // La revisión y todos sus elementos se actualizan en una sola transacción.
+      await apiFetch(`/api/revisionescda/${revisionCDAEnEdicion}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...payload, detalles })
+      });
+      toast('Revisión CDA y checklist actualizados correctamente');
+    } else {
+      // En creación, primero se genera la revisión y luego se registran sus elementos.
+      const revision = await apiFetch('/api/revisionescda', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      const revisionId = revision.revisionId;
+      if (!revisionId) throw new Error('El servidor no devolvió el ID de la revisión creada');
+
+      await apiFetch(`/api/revisionescda/${revisionId}/detalle`, {
+        method: 'POST',
+        body: JSON.stringify(detalles)
+      });
+      toast('Revisión CDA y checklist registrados correctamente');
+    }
+
+    revisionCDAEnEdicion = null;
+    document.querySelector('#modal-cda .modal-title').textContent = 'NUEVA REVISION CDA';
+    document.querySelector('#modal-cda .modal-footer .btn-primary').textContent = 'Guardar';
+    closeModal('modal-cda');
+    await cargarCDA();
+  } catch (err) {
+    toast(err.message, 'error');
+    console.error('Error guardando revisión CDA:', err);
+  }
+}
+
+document.getElementById('modal-cda')?.addEventListener('hidden.bs.modal', () => {
+  limpiarFormularioCDA();
+});
 
 // ─── INIT ───
 document.addEventListener('change', event => {
@@ -745,12 +961,14 @@ document.addEventListener('change', event => {
 });
 
 async function inicializar() {
+  ocultarObservacionesGeneralesCDA();
   try {
     const empleados = await apiFetch('/api/empleados');
     empleadosDisponibles = empleados;
     const opts = empleados.map(e => `<option value="${e.empleadoId}">${e.nombre} ${e.apellido} — ${e.nombreCargo}</option>`).join('');
     document.getElementById('o-empleadoid').innerHTML = opts;
-    document.getElementById('cda-empleadoid').innerHTML = opts;
+    document.getElementById('cda-empleadoid').innerHTML =
+      '<option value="">Selecciona un inspector</option>' + opts;
     const historialSelect = document.getElementById('h-empleado');
     if (historialSelect) {
       historialSelect.innerHTML = '<option value="">Selecciona un empleado</option>' +
