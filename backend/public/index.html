@@ -383,10 +383,12 @@
                 </select></div>
               <div class="form-group"><label class="form-label">Fecha del evento *</label><input type="date"
                   class="form-control" id="h-fecha" /></div>
-              <div class="form-group"><label class="form-label">Técnico responsable *</label><input type="text"
-                  class="form-control" id="h-tecnico" placeholder="Nombre del técnico" /></div>
-              <div class="form-group"><label class="form-label">Especialidad</label><input type="text"
-                  class="form-control" id="h-especialidad" placeholder="Ej. Mecánica general" /></div>
+              <div class="form-group"><label class="form-label">Técnico responsable *</label><select
+                  class="form-select" id="h-empleado" required>
+                  <option value="">Selecciona un empleado</option>
+                </select></div>
+              <div class="form-group"><label class="form-label">Cargo</label><input type="text"
+                  class="form-control" id="h-cargo" placeholder="Se completa automáticamente" readonly /></div>
               <div class="form-group"><label class="form-label">Kilometraje</label><input type="number" min="0"
                   class="form-control" id="h-km" placeholder="Km al momento del evento" /></div>
               <div class="form-group"><label class="form-label">Detalle del trabajo *</label><textarea

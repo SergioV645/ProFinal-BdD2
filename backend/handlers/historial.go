@@ -19,9 +19,9 @@ import (
 )
 
 type TecnicoHistorial struct {
-	EmpleadoID   int    `json:"empleadoId,omitempty" bson:"empleado_id,omitempty"`
-	Nombre       string `json:"nombre" bson:"nombre"`
-	Especialidad string `json:"especialidad,omitempty" bson:"especialidad,omitempty"`
+	EmpleadoID int    `json:"empleadoId" bson:"empleado_id"`
+	Nombre     string `json:"nombre" bson:"nombre"`
+	Cargo      string `json:"cargo" bson:"cargo"`
 }
 
 type HistorialVehicular struct {
@@ -117,6 +117,14 @@ func crearHistorial(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := validarHistorial(&item); err != nil {
 		writeJSONError(w, 400, err.Error())
+		return
+	}
+	if err := completarTecnicoDesdeMySQL(r, &item.Tecnico); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeJSONError(w, http.StatusBadRequest, "El empleado seleccionado no existe o está inactivo")
+		} else {
+			writeJSONError(w, http.StatusInternalServerError, "No fue posible validar el empleado")
+		}
 		return
 	}
 	var placa string
@@ -215,9 +223,21 @@ func actualizarHistorial(w http.ResponseWriter, r *http.Request, id bson.ObjectI
 		writeJSONError(w, 400, err.Error())
 		return
 	}
+	if err := completarTecnicoDesdeMySQL(r, &item.Tecnico); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeJSONError(w, http.StatusBadRequest, "El empleado seleccionado no existe o está inactivo")
+		} else {
+			writeJSONError(w, http.StatusInternalServerError, "No fue posible validar el empleado")
+		}
+		return
+	}
 	var placa string
 	if err := db.DB.QueryRow("SELECT placa FROM vehiculos WHERE vehiculo_id = ?", item.VehiculoID).Scan(&placa); err != nil {
-		writeJSONError(w, 404, "Vehículo no encontrado")
+		if errors.Is(err, sql.ErrNoRows) {
+			writeJSONError(w, 404, "Vehículo no encontrado")
+		} else {
+			writeJSONError(w, 500, "No fue posible validar el vehículo")
+		}
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
@@ -252,6 +272,24 @@ func eliminarHistorial(w http.ResponseWriter, r *http.Request, id bson.ObjectID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// completarTecnicoDesdeMySQL obtiene el nombre y cargo oficiales del empleado.
+// MongoDB conserva estos datos como fotografía histórica del evento.
+func completarTecnicoDesdeMySQL(r *http.Request, tecnico *TecnicoHistorial) error {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	return db.DB.QueryRowContext(ctx, `
+		SELECT e.empleado_id, CONCAT(e.nombre, ' ', e.apellido), c.nombre
+		FROM empleados e
+		INNER JOIN cargos c ON c.cargo_id = e.cargo_id
+		WHERE e.empleado_id = ? AND e.activo = 1
+	`, tecnico.EmpleadoID).Scan(
+		&tecnico.EmpleadoID,
+		&tecnico.Nombre,
+		&tecnico.Cargo,
+	)
+}
+
 func validarHistorial(item *HistorialVehicular) error {
 	if item.VehiculoID <= 0 {
 		return errors.New("vehiculoId es obligatorio y debe ser mayor que cero")
@@ -265,8 +303,8 @@ func validarHistorial(item *HistorialVehicular) error {
 	if item.FechaEvento.IsZero() {
 		return errors.New("fechaEvento es obligatoria (formato AAAA-MM-DD)")
 	}
-	if strings.TrimSpace(item.Tecnico.Nombre) == "" {
-		return errors.New("el nombre del técnico es obligatorio")
+	if item.Tecnico.EmpleadoID <= 0 {
+		return errors.New("Debes seleccionar un empleado de la lista")
 	}
 	if item.Detalle == nil {
 		item.Detalle = map[string]any{}

@@ -241,6 +241,7 @@ async function guardarVehiculo() {
 
 let historialVehiculoActual = null;
 let historialEventoEditando = null;
+let empleadosDisponibles = [];
 
 async function abrirHistorial(vehiculoId, placa, descripcion) {
   historialVehiculoActual = vehiculoId;
@@ -294,7 +295,7 @@ async function cargarHistorialVehiculo() {
                 <td>
                   ${item.tecnico?.nombre ?? '—'}<br>
                   <small class="muted">
-                    ${item.tecnico?.especialidad ?? ''}
+                    ${item.tecnico?.cargo ?? ''}
                   </small>
                 </td>
                 <td>${item.detalle?.descripcion ?? '—'}</td>
@@ -335,6 +336,31 @@ async function cargarHistorialVehiculo() {
   }
 }
 
+function actualizarCargoTecnico() {
+  const empleadoId = Number(document.getElementById('h-empleado').value);
+  const empleado = empleadosDisponibles.find(e => Number(e.empleadoId) === empleadoId);
+  document.getElementById('h-cargo').value = empleado?.nombreCargo ?? '';
+}
+
+async function cargarEmpleadosHistorial() {
+  const select = document.getElementById('h-empleado');
+  select.innerHTML = '<option value="">Cargando empleados...</option>';
+
+  try {
+    empleadosDisponibles = await apiFetch('/api/empleados');
+    select.innerHTML = '<option value="">Selecciona un empleado</option>' +
+      empleadosDisponibles.map(e => `
+        <option value="${e.empleadoId}">
+          ${e.nombre} ${e.apellido} — ${e.nombreCargo}
+        </option>
+      `).join('');
+    actualizarCargoTecnico();
+  } catch (err) {
+    select.innerHTML = '<option value="">No fue posible cargar empleados</option>';
+    toast('No fue posible cargar los empleados: ' + err.message, 'error');
+  }
+}
+
 function mostrarFormularioHistorial() {
   historialEventoEditando = null;
   limpiarFormularioHistorial();
@@ -357,8 +383,8 @@ function limpiarFormularioHistorial() {
   document.getElementById('h-tipo').value = 'DIAGNOSTICO';
   document.getElementById('h-fecha').value =
     new Date().toISOString().slice(0, 10);
-  document.getElementById('h-tecnico').value = '';
-  document.getElementById('h-especialidad').value = '';
+  document.getElementById('h-empleado').value = '';
+  document.getElementById('h-cargo').value = '';
   document.getElementById('h-km').value = '';
   document.getElementById('h-detalle').value = '';
   document.getElementById('h-observaciones').value = '';
@@ -379,11 +405,15 @@ async function editarHistorial(id) {
         ? new Date(evento.fechaEvento).toISOString().slice(0, 10)
         : '';
 
-    document.getElementById('h-tecnico').value =
-      evento.tecnico?.nombre ?? '';
+    document.getElementById('h-empleado').value =
+      evento.tecnico?.empleadoId ?? '';
 
-    document.getElementById('h-especialidad').value =
-      evento.tecnico?.especialidad ?? '';
+    actualizarCargoTecnico();
+
+    // Los registros antiguos sin empleadoId requieren seleccionar un empleado vigente.
+    if (!evento.tecnico?.empleadoId) {
+      toast('Selecciona el empleado responsable para actualizar este registro', 'error');
+    }
 
     document.getElementById('h-km').value =
       evento.detalle?.kilometraje ?? '';
@@ -416,11 +446,10 @@ async function guardarHistorial() {
     const fecha = document.getElementById('h-fecha').value;
     const descripcion =
       document.getElementById('h-detalle').value.trim();
-    const tecnico =
-      document.getElementById('h-tecnico').value.trim();
+    const empleadoId = Number(document.getElementById('h-empleado').value);
 
-    if (!fecha || !descripcion || !tecnico) {
-      toast('Completa fecha, técnico y detalle del evento', 'error');
+    if (!fecha || !descripcion || !empleadoId) {
+      toast('Selecciona el técnico y completa la fecha y el detalle del evento', 'error');
       return;
     }
 
@@ -429,9 +458,7 @@ async function guardarHistorial() {
       tipoEvento: document.getElementById('h-tipo').value,
       fechaEvento: `${fecha}T12:00:00Z`,
       tecnico: {
-        nombre: tecnico,
-        especialidad:
-          document.getElementById('h-especialidad').value.trim()
+        empleadoId
       },
       detalle: {
         descripcion,
@@ -713,12 +740,22 @@ async function guardarCDA() {
 }
 
 // ─── INIT ───
+document.addEventListener('change', event => {
+  if (event.target?.id === 'h-empleado') actualizarCargoTecnico();
+});
+
 async function inicializar() {
   try {
     const empleados = await apiFetch('/api/empleados');
+    empleadosDisponibles = empleados;
     const opts = empleados.map(e => `<option value="${e.empleadoId}">${e.nombre} ${e.apellido} — ${e.nombreCargo}</option>`).join('');
     document.getElementById('o-empleadoid').innerHTML = opts;
     document.getElementById('cda-empleadoid').innerHTML = opts;
+    const historialSelect = document.getElementById('h-empleado');
+    if (historialSelect) {
+      historialSelect.innerHTML = '<option value="">Selecciona un empleado</option>' +
+        empleados.map(e => `<option value="${e.empleadoId}">${e.nombre} ${e.apellido} — ${e.nombreCargo}</option>`).join('');
+    }
   } catch (_) { }
   cargarDashboard();
 }
