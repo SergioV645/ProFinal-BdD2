@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"taller_vehiculos/db"
+	"taller_vehiculos/internal/db"
 )
 
 func Repuestos(w http.ResponseWriter, r *http.Request) {

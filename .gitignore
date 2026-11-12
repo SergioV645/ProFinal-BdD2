@@ -1,0 +1,14 @@
+# Binarios de Go
+backend/taller_vehiculos
+backend/server
+*.exe
+*.out
+
+# Variables de entorno locales
+.env
+
+# Editores y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
