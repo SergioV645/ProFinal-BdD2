@@ -668,3 +668,46 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 #modal-proveedores-repuesto .form-row { row-gap: 0.9rem; }
 #modal-proveedores-repuesto .divider { margin-top: 0.5rem; }
 #tabla-cda .data-table td:last-child, #tabla-cda .data-table th:last-child { text-align: center; white-space: nowrap; }
+
+
+/* Autenticacion y sesiones de Aurum Motors */
+.login-screen {
+  position: fixed; inset: 0; z-index: 20000; display: flex;
+  align-items: center; justify-content: center; padding: 1.25rem;
+  background: radial-gradient(circle at 50% 20%, rgba(205,170,67,.12), transparent 42%), #080808;
+}
+.login-card {
+  width: min(100%, 420px); padding: 2.2rem; border: 1px solid var(--border);
+  border-radius: 16px; background: #111; box-shadow: 0 24px 80px rgba(0,0,0,.55);
+}
+.login-brand { display:flex; align-items:center; gap:.8rem; margin-bottom:2rem; color:var(--gold); letter-spacing:.12em; }
+.login-brand .brand-logo { display:grid; place-items:center; width:42px;height:42px;border-radius:9px;background:var(--gold);color:#111;font-weight:800; }
+.login-brand strong,.login-brand small { display:block; }
+.login-brand small { font-size:.62rem; letter-spacing:.25em; }
+.login-card h1 { font-size:1.45rem; letter-spacing:.12em; margin-bottom:.4rem; }
+.login-card p { color:var(--text-2); font-size:.85rem; margin-bottom:1.5rem; }
+.login-error { min-height:1.25rem; color:var(--danger); font-size:.82rem; margin-top:.7rem; }
+.session-user { color:var(--gold); font-size:.7rem; margin-top:.8rem; overflow-wrap:anywhere; }
+#logout-button { margin-top:.45rem; width:100%; justify-content:flex-start; }
+
+
+/* Ajustes de interfaz: login y administracion de usuarios */
+.login-card { display: flex; flex-direction: column; }
+.login-submit { display: block; width: min(100%, 220px); margin-left: auto; margin-right: auto; }
+.users-create-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.15rem 1.25rem; align-items: end; }
+.users-create-grid .form-group { min-width: 0; }
+.users-create-grid .form-control, .users-create-grid .form-select { min-height: 44px; }
+.users-employee-field { grid-column: 1 / -1; }
+.users-create-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .85rem 1.1rem; margin-top: 1.25rem; }
+.users-create-actions small { line-height: 1.5; }
+.users-table { min-width: 780px; }
+.users-row-actions { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: flex-start; }
+#modal-editar-usuario .modal-content { background: #111; color: var(--text-1); border: 1px solid var(--border); border-radius: 14px; }
+#modal-editar-usuario .modal-header, #modal-editar-usuario .modal-footer { border-color: var(--border); }
+#modal-editar-usuario .btn-close { filter: invert(1); }
+@media (max-width: 700px) {
+  .users-create-grid { grid-template-columns: 1fr; }
+  .users-employee-field { grid-column: auto; }
+  .users-create-actions { align-items: flex-start; flex-direction: column; }
+  .login-card { padding: 1.6rem; }
+}

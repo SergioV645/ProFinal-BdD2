@@ -9,16 +9,16 @@ import (
 )
 
 type Empleado struct {
-	EmpleadoID  int       `json:"empleadoId"`
-	CargoID     int       `json:"cargoId"`
-	Cedula      string    `json:"cedula"`
-	Nombre      string    `json:"nombre"`
-	Apellido    string    `json:"apellido"`
-	Telefono    *string   `json:"telefono"`
-	Salario     float64   `json:"salario"`
+	EmpleadoID   int       `json:"empleadoId"`
+	CargoID      int       `json:"cargoId"`
+	Cedula       string    `json:"cedula"`
+	Nombre       string    `json:"nombre"`
+	Apellido     string    `json:"apellido"`
+	Telefono     *string   `json:"telefono"`
+	Salario      float64   `json:"salario"`
 	FechaIngreso time.Time `json:"fechaIngreso"`
-	Activo      bool      `json:"activo"`
-	NombreCargo string    `json:"nombreCargo"`
+	Activo       bool      `json:"activo"`
+	NombreCargo  string    `json:"nombreCargo"`
 }
 
 func Empleados(w http.ResponseWriter, r *http.Request) {

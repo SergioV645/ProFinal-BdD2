@@ -272,7 +272,6 @@ func eliminarHistorial(w http.ResponseWriter, r *http.Request, id bson.ObjectID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// completarTecnicoDesdeMySQL obtiene el nombre y cargo oficiales del empleado.
 // MongoDB conserva estos datos como fotografía histórica del evento.
 func completarTecnicoDesdeMySQL(r *http.Request, tecnico *TecnicoHistorial) error {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)

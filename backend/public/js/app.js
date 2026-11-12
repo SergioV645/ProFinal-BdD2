@@ -1,4 +1,7 @@
-const API = 'http://localhost:8080';
+const API = ''; 
+let currentUser = null;
+const isAdmin = () => currentUser?.role === 'ADMINISTRADOR';
+const canDelete = () => isAdmin();
 
 function fmt(n) {
   if (n == null) return '—';
@@ -34,7 +37,7 @@ function toast(msg, type = 'success') {
   bootstrap.Toast.getOrCreateInstance(el, { delay: 3500 }).show();
 }
 async function apiFetch(url, opts = {}) {
-  const res = await fetch(API + url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  const res = await fetch(API + url, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
   return data;
@@ -45,21 +48,38 @@ function loading() { return `<div class="loading-state"><div class="spinner"></d
 function empty(msg = 'Sin registros') { return `<div class="empty-state">${msg}</div>`; }
 
 // ─── NAVEGACION ───
+function mostrarSeccion(nombreSeccion) {
+  // Los empleados nunca pueden permanecer ni navegar a Gestión de usuarios.
+  if (nombreSeccion === 'usuarios' && !isAdmin()) {
+    nombreSeccion = 'dashboard';
+  }
+
+  let linkActivo = document.querySelector(`.sidebar-link[data-section="${nombreSeccion}"]`);
+  if (!linkActivo || linkActivo.classList.contains('d-none')) {
+    nombreSeccion = 'dashboard';
+    linkActivo = document.querySelector('.sidebar-link[data-section="dashboard"]');
+  }
+
+  document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+  linkActivo?.classList.add('active');
+  document.querySelectorAll('[id^="section-"]').forEach(section => section.classList.add('d-none'));
+
+  const section = document.getElementById(`section-${nombreSeccion}`);
+  if (!section) return;
+  section.classList.remove('d-none', 'animate-in');
+  void section.offsetWidth;
+  section.classList.add('animate-in');
+
+  ({
+    dashboard: cargarDashboard, clientes: cargarClientes, vehiculos: cargarVehiculos,
+    ordenes: cargarOrdenes, repuestos: cargarRepuestos, cda: cargarCDA, usuarios: cargarUsuarios
+  })[nombreSeccion]?.();
+}
+
 document.querySelectorAll('.sidebar-link').forEach(link => {
-  link.addEventListener('click', e => {
-    e.preventDefault();
-    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-    link.classList.add('active');
-    document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('d-none'));
-    const sec = document.getElementById(`section-${link.dataset.section}`);
-    sec.classList.remove('d-none');
-    sec.classList.remove('animate-in');
-    void sec.offsetWidth;
-    sec.classList.add('animate-in');
-    ({
-      dashboard: cargarDashboard, clientes: cargarClientes, vehiculos: cargarVehiculos,
-      ordenes: cargarOrdenes, repuestos: cargarRepuestos, cda: cargarCDA
-    })[link.dataset.section]?.();
+  link.addEventListener('click', event => {
+    event.preventDefault();
+    mostrarSeccion(link.dataset.section);
   });
 });
 
@@ -326,13 +346,13 @@ async function cargarHistorialVehiculo() {
                       <i class="bi bi-pencil"></i>
                     </button>
 
-                    <button
+                    ${canDelete() ? `<button
                       class="btn btn-icon"
                       title="Eliminar evento"
                       style="color:var(--danger)"
                       onclick="eliminarHistorial('${item.id}')">
                       <i class="bi bi-trash"></i>
-                    </button>
+                    </button>` : ''}
                   </div>
                 </td>
               </tr>
@@ -720,6 +740,8 @@ async function guardarRepuesto() {
 // ─── PROVEEDORES POR REPUESTO ───
 async function abrirProveedoresRepuesto(repuestoId) {
   document.getElementById('rp-repuestoid').value = repuestoId;
+  document.querySelector('#modal-proveedores-repuesto .form-row').classList.toggle('d-none', !isAdmin());
+  document.querySelector('#modal-proveedores-repuesto .rp-actions').classList.toggle('d-none', !isAdmin());
   try {
     const proveedores = await apiFetch('/api/proveedores');
     document.getElementById('rp-proveedor').innerHTML = proveedores.map(p => `<option value="${p.proveedorId}">${p.nombre}</option>`).join('');
@@ -733,7 +755,7 @@ async function cargarProveedoresRepuesto() {
   document.getElementById('rp-lista').innerHTML = data.length ? `
     <table class="data-table"><thead><tr><th>Proveedor</th><th>Precio compra</th><th>Entrega</th><th></th></tr></thead>
     <tbody>${data.map(p => `<tr><td>${p.proveedor}</td><td>${fmt(p.precioCompra)}</td><td>${p.diasEntrega} días</td>
-    <td><button class="btn btn-ghost btn-sm" onclick="eliminarProveedorRepuesto(${p.proveedorId})">Quitar</button></td></tr>`).join('')}</tbody></table>` : empty('Sin proveedores asociados');
+    <td>${canDelete() ? `<button class="btn btn-ghost btn-sm" onclick="eliminarProveedorRepuesto(${p.proveedorId})">Quitar</button>` : ''}</td></tr>`).join('')}</tbody></table>` : empty('Sin proveedores asociados');
 }
 async function guardarProveedorRepuesto() {
   try {
@@ -793,7 +815,7 @@ async function cargarCDA() {
           <td class="muted">${fmtDate(r.fechaRevision)}</td>
           <td>${badgeEstado(r.resultado)}</td>
           <td class="muted">${fmtDate(r.fechaVencimiento)}</td>
-          <td class="cda-actions"><button class="btn btn-ghost btn-sm" onclick="abrirDetalleCDA(${r.revisionId})">Detalle</button> <button class="btn btn-ghost btn-sm" onclick="editarRevisionCDA(${r.revisionId})">Editar</button> <button class="btn btn-danger btn-sm" onclick="eliminarRevisionCDA(${r.revisionId})">Eliminar</button></td>
+          <td class="cda-actions"><button class="btn btn-ghost btn-sm" onclick="abrirDetalleCDA(${r.revisionId})">Detalle</button> <button class="btn btn-ghost btn-sm" onclick="editarRevisionCDA(${r.revisionId})">Editar</button> ${canDelete() ? `<button class="btn btn-danger btn-sm" onclick="eliminarRevisionCDA(${r.revisionId})">Eliminar</button>` : ''}</td>
         </tr>`).join('')}</tbody>
       </table>`;
   } catch (err) { toast(err.message, 'error'); }
@@ -960,7 +982,7 @@ document.addEventListener('change', event => {
   if (event.target?.id === 'h-empleado') actualizarCargoTecnico();
 });
 
-async function inicializar() {
+async function cargarDatosIniciales() {
   ocultarObservacionesGeneralesCDA();
   try {
     const empleados = await apiFetch('/api/empleados');
@@ -971,10 +993,175 @@ async function inicializar() {
       '<option value="">Selecciona un inspector</option>' + opts;
     const historialSelect = document.getElementById('h-empleado');
     if (historialSelect) {
-      historialSelect.innerHTML = '<option value="">Selecciona un empleado</option>' +
-        empleados.map(e => `<option value="${e.empleadoId}">${e.nombre} ${e.apellido} — ${e.nombreCargo}</option>`).join('');
+      historialSelect.innerHTML = '<option value="">Selecciona un empleado</option>' + opts;
     }
-  } catch (_) { }
+  } catch (err) {
+    toast('No fue posible cargar los empleados: ' + err.message, 'error');
+  }
   cargarDashboard();
+}
+
+function mostrarAplicacion() {
+  document.getElementById('login-screen').classList.add('d-none');
+  document.querySelector('.sidebar').classList.remove('d-none');
+  document.querySelector('.main-content').classList.remove('d-none');
+  const session = document.getElementById('session-user');
+  session.textContent = `${currentUser.username} · ${currentUser.role}`;
+  session.classList.remove('d-none');
+  document.getElementById('logout-button').classList.remove('d-none');
+  document.getElementById('nav-usuarios').classList.toggle('d-none', !isAdmin());
+  // Reinicia siempre la vista al Dashboard al entrar o restaurar una sesión.
+  mostrarSeccion('dashboard');
+  cargarDatosIniciales();
+}
+
+function mostrarLogin(mensaje = '') {
+  currentUser = null;
+  document.querySelector('.sidebar').classList.add('d-none');
+  document.querySelector('.main-content').classList.add('d-none');
+  document.getElementById('login-screen').classList.remove('d-none');
+  document.getElementById('login-error').textContent = mensaje;
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+async function iniciarSesion(event) {
+  event.preventDefault();
+  const button = document.querySelector('#login-form button[type="submit"]');
+  button.disabled = true;
+  try {
+    const result = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: document.getElementById('login-username').value.trim(),
+        password: document.getElementById('login-password').value
+      })
+    });
+    currentUser = result.user;
+    mostrarAplicacion();
+  } catch (err) {
+    mostrarLogin(err.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function cerrarSesion() {
+  try { await apiFetch('/api/auth/logout', { method: 'POST' }); } catch (_) {}
+  mostrarLogin('Has cerrado sesión.');
+}
+
+async function cargarUsuarios() {
+  if (!isAdmin()) return;
+  const cont = document.getElementById('tabla-usuarios');
+  cont.innerHTML = loading();
+  try {
+    const [users, employees] = await Promise.all([
+      apiFetch('/api/usuarios'),
+      apiFetch('/api/empleados')
+    ]);
+    const select = document.getElementById('u-employee');
+    const linked = new Set(users.filter(u => u.employeeId).map(u => Number(u.employeeId)));
+    select.innerHTML = '<option value="">Selecciona un empleado</option>' +
+      employees.filter(e => !linked.has(Number(e.empleadoId))).map(e =>
+        `<option value="${e.empleadoId}">${e.nombre} ${e.apellido} — ${e.nombreCargo}</option>`).join('');
+    cont.innerHTML = users.length ? `<div class="table-responsive"><table class="data-table users-table">
+      <thead><tr><th>Usuario</th><th>Rol</th><th>Empleado asociado</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>${users.map(u => `<tr>
+        <td data-label="Usuario">${u.username}</td><td data-label="Rol">${u.role}</td><td data-label="Empleado">${u.employee || '—'}</td>
+        <td data-label="Estado">${u.active ? '<span class="badge badge-aprobado">Activo</span>' : '<span class="badge badge-reprobado">Inactivo</span>'}</td>
+        <td data-label="Acciones"><div class="users-row-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editarUsuario(${u.userId})"><i class="bi bi-pencil-square"></i> Editar</button>
+          <button class="btn btn-ghost btn-sm" onclick="cambiarEstadoUsuario(${u.userId}, ${!u.active})">${u.active ? 'Desactivar' : 'Activar'}</button>
+          <button class="btn btn-ghost btn-sm" onclick="restablecerPasswordUsuario(${u.userId})">Cambiar contraseña</button>
+        </div></td>
+      </tr>`).join('')}</tbody></table></div>` : empty('No hay usuarios registrados');
+  } catch (err) { cont.innerHTML = empty(err.message); }
+}
+
+async function crearUsuarioEmpleado() {
+  try {
+    await apiFetch('/api/usuarios', { method: 'POST', body: JSON.stringify({
+      username: document.getElementById('u-username').value.trim(),
+      password: document.getElementById('u-password').value,
+      employeeId: Number(document.getElementById('u-employee').value)
+    })});
+    document.getElementById('u-username').value = '';
+    document.getElementById('u-password').value = '';
+    toast('Usuario empleado creado');
+    await cargarUsuarios();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function editarUsuario(id) {
+  try {
+    const [users, employees] = await Promise.all([apiFetch('/api/usuarios'), apiFetch('/api/empleados')]);
+    const user = users.find(u => Number(u.userId) === Number(id));
+    if (!user) throw new Error('No se encontró el usuario');
+    document.getElementById('edit-u-id').value = user.userId;
+    document.getElementById('edit-u-username').value = user.username;
+    const wrap = document.getElementById('edit-u-employee-wrap');
+    const select = document.getElementById('edit-u-employee');
+    if (user.role === 'EMPLEADO') {
+      wrap.classList.remove('d-none');
+      select.innerHTML = '<option value="">Selecciona un empleado</option>' + employees
+        .filter(e => e.activo !== false || Number(e.empleadoId) === Number(user.employeeId))
+        .map(e => `<option value="${e.empleadoId}">${e.nombre} ${e.apellido} — ${e.nombreCargo}</option>`).join('');
+      select.value = user.employeeId || '';
+    } else {
+      wrap.classList.add('d-none');
+      select.innerHTML = '';
+    }
+    openModal('modal-editar-usuario');
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function guardarEdicionUsuario() {
+  const id = Number(document.getElementById('edit-u-id').value);
+  const username = document.getElementById('edit-u-username').value.trim();
+  const payload = { username };
+  const employeeWrap = document.getElementById('edit-u-employee-wrap');
+  if (!employeeWrap.classList.contains('d-none')) {
+    const employeeId = Number(document.getElementById('edit-u-employee').value);
+    if (!employeeId) { toast('Selecciona un empleado asociado', 'error'); return; }
+    payload.employeeId = employeeId;
+  }
+  if (!username) { toast('El nombre de usuario es obligatorio', 'error'); return; }
+  try {
+    await apiFetch(`/api/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+    closeModal('modal-editar-usuario');
+    toast('Usuario actualizado correctamente');
+    await cargarUsuarios();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function cambiarEstadoUsuario(id, active) {
+  if (!confirm(active ? '¿Activar este usuario?' : '¿Desactivar este usuario?')) return;
+  try {
+    await apiFetch(`/api/usuarios/${id}`, { method: 'PUT', body: JSON.stringify({ active }) });
+    toast('Estado del usuario actualizado');
+    await cargarUsuarios();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function restablecerPasswordUsuario(id) {
+  const password = prompt('Nueva contraseña (mínimo 10 caracteres):');
+  if (password === null) return;
+  try {
+    await apiFetch(`/api/usuarios/${id}`, { method: 'PUT', body: JSON.stringify({ password }) });
+    toast('Contraseña actualizada');
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+document.getElementById('login-form')?.addEventListener('submit', iniciarSesion);
+
+async function inicializar() {
+  try {
+    const result = await apiFetch('/api/auth/me');
+    currentUser = result.user;
+    mostrarAplicacion();
+  } catch (_) {
+    mostrarLogin();
+  }
 }
 inicializar();

@@ -11,6 +11,19 @@
 </head>
 
 <body>
+  <div id="login-screen" class="login-screen">
+    <form id="login-form" class="login-card">
+      <div class="login-brand"><span class="brand-logo">T0D0</span><div><strong>AURUM</strong><small>MOTORS</small></div></div>
+      <h1>INICIAR SESIÓN</h1>
+      <p>Accede al sistema de gestión de Aurum Motors.</p>
+      <label class="form-label" for="login-username">Usuario</label>
+      <input id="login-username" class="form-control" autocomplete="username" required>
+      <label class="form-label mt-3" for="login-password">Contraseña</label>
+      <input id="login-password" type="password" class="form-control" autocomplete="current-password" required>
+      <div id="login-error" class="login-error" role="alert"></div>
+      <button class="btn btn-primary login-submit mt-3" type="submit">Ingresar</button>
+    </form>
+  </div>
 
   <!-- ===== SIDEBAR ===== -->
   <aside class="sidebar">
@@ -49,12 +62,20 @@
         <i class="bi bi-patch-check"></i>
         <span>CDA</span>
       </a>
+      <a class="sidebar-link d-none" href="#" data-section="usuarios" id="nav-usuarios">
+        <i class="bi bi-shield-lock"></i>
+        <span>Usuarios</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
       <div class="sidebar-footer-line">AURUM</div>
       <div class="sidebar-footer-line muted">Bogotá, Colombia</div>
       <div class="sidebar-footer-line muted">Bases de Datos 2</div>
+      <div id="session-user" class="session-user d-none"></div>
+      <button id="logout-button" class="btn btn-ghost btn-sm d-none" type="button" onclick="cerrarSesion()">
+        <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+      </button>
     </div>
   </aside>
 
@@ -272,7 +293,48 @@
       </div>
     </section>
 
+    <!-- ===== ADMINISTRACION DE USUARIOS (SOLO ADMINISTRADOR) ===== -->
+    <section id="section-usuarios" class="d-none">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">GESTIÓN DE <span class="page-title-accent">USUARIOS</span></h1>
+          <p class="page-subtitle">Cuentas de acceso para administradores y empleados</p>
+        </div>
+      </div>
+      <div class="panel mb-4">
+        <div class="panel-header"><span class="panel-title">Crear usuario empleado</span></div>
+        <div class="panel-body">
+          <div class="users-create-grid">
+            <div class="form-group"><label class="form-label" for="u-username">Nombre de usuario *</label><input id="u-username" class="form-control" autocomplete="off" placeholder="Ej. jperez"></div>
+            <div class="form-group"><label class="form-label" for="u-password">Contraseña temporal *</label><input id="u-password" type="password" class="form-control" autocomplete="new-password" placeholder="Mínimo 10 caracteres"></div>
+            <div class="form-group users-employee-field"><label class="form-label" for="u-employee">Empleado asociado *</label><select id="u-employee" class="form-select"></select></div>
+          </div>
+          <div class="users-create-actions"><button class="btn btn-primary" type="button" onclick="crearUsuarioEmpleado()"><i class="bi bi-person-plus"></i> Crear usuario</button><small class="muted">La contraseña debe tener al menos 10 caracteres. Cada empleado solo puede tener una cuenta.</small></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Usuarios registrados</span></div>
+        <div id="tabla-usuarios" class="panel-body"></div>
+      </div>
+    </section>
+
   </main>
+
+  <!-- MODAL EDITAR USUARIO -->
+  <div class="modal fade" id="modal-editar-usuario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Editar usuario</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="edit-u-id">
+          <div class="form-group mb-3"><label class="form-label" for="edit-u-username">Nombre de usuario *</label><input id="edit-u-username" class="form-control" autocomplete="off"></div>
+          <div class="form-group" id="edit-u-employee-wrap"><label class="form-label" for="edit-u-employee">Empleado asociado *</label><select id="edit-u-employee" class="form-select"></select></div>
+          <small class="muted d-block mt-2">El rol de la cuenta se conserva. Para cambiar la contraseña utiliza la acción correspondiente en la tabla.</small>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-primary" onclick="guardarEdicionUsuario()">Guardar cambios</button></div>
+      </div>
+    </div>
+  </div>
 
   <!-- CLIENTE -->
   <div class="modal fade" id="modal-cliente" tabindex="-1">
