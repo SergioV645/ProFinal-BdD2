@@ -1,4 +1,5 @@
-const API = 'http://localhost:8080';
+// Si el frontend se sirve desde el backend se usa el mismo origen; si se abre como archivo, se apunta al servidor local.
+const API = window.location.protocol === 'file:' ? 'http://localhost:8080' : '';
 
 function fmt(n) {
   if (n == null) return '—';

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"taller_vehiculos/db"
+	"taller_vehiculos/internal/db"
 )
 
 func Servicios(w http.ResponseWriter, r *http.Request) {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"taller_vehiculos/db"
+	"taller_vehiculos/internal/db"
 )
 
 type Cliente struct {

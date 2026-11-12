@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"taller_vehiculos/db"
-	"taller_vehiculos/handlers"
+	"taller_vehiculos/internal/db"
+	"taller_vehiculos/internal/handlers"
 )
 
 func main() {
@@ -16,10 +16,13 @@ func main() {
 	}
 	db.Connect(dsn)
 
+	port := getEnv("PORT", "8080")
+	frontendDir := getEnv("FRONTEND_DIR", "../frontend")
+
 	mux := http.NewServeMux()
 
 	// Frontend estatico
-	mux.Handle("/", http.FileServer(http.Dir("./public")))
+	mux.Handle("/", http.FileServer(http.Dir(frontendDir)))
 
 	// Clientes
 	mux.HandleFunc("/api/clientes", handlers.Clientes)
@@ -45,8 +48,15 @@ func main() {
 	// CDA
 	mux.HandleFunc("/api/revisionescda", handlers.RevisionesCDA)
 
-	log.Println("Servidor corriendo en http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
+	log.Printf("Servidor corriendo en http://localhost:%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, corsMiddleware(mux)))
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
