@@ -26,7 +26,10 @@ Proyecto final del curso **Bases de Datos II**.
 - **Órdenes de trabajo**: creación, seguimiento por estado, asignación de servicios y repuestos, cierre y facturación (IVA incluido).
 - **Repuestos**: inventario con control de stock mínimo y alertas de bajo stock.
 - **Servicios**: catálogo agrupado por categoría.
-- **Revisiones CDA**: registro de revisiones, resultado y fecha de vencimiento, con alerta de vehículos con CDA vencida.
+- **Revisiones CDA**: registro, edición y eliminación de revisiones con checklist de inspección, resultado y fecha de vencimiento.
+- **Proveedores**: un repuesto puede asociarse a varios proveedores.
+- **Historial técnico (MongoDB)**: eventos por vehículo con detalle flexible, CRUD completo y estadísticas por tipo de evento.
+- **Usuarios y roles**: inicio de sesión con roles `ADMINISTRADOR` y `EMPLEADO`; contraseñas cifradas con bcrypt.
 
 ---
 
@@ -34,9 +37,11 @@ Proyecto final del curso **Bases de Datos II**.
 
 | Capa          | Tecnología                                  |
 |---------------|---------------------------------------------|
-| Backend       | Go 1.22+ (`net/http`, biblioteca estándar)  |
-| Base de datos | MySQL 8+                                    |
-| Driver        | `github.com/go-sql-driver/mysql`            |
+| Backend       | Go 1.25+ (`net/http`, biblioteca estándar)  |
+| Base relacional | MySQL 8+                                  |
+| Base documental | MongoDB Atlas                             |
+| Drivers       | `go-sql-driver/mysql`, `mongo-driver/v2`    |
+| Seguridad     | `golang.org/x/crypto/bcrypt`, cookies HttpOnly |
 | Frontend      | HTML, CSS y JavaScript (vanilla)            |
 
 ---
@@ -49,7 +54,9 @@ Proyecto final del curso **Bases de Datos II**.
 │   ├── main.go               # Punto de entrada, configuración y rutas
 │   ├── go.mod / go.sum
 │   └── internal/
+│       ├── auth/             # Inicio de sesión, sesiones y roles
 │       ├── db/               # Conexión a MySQL
+│       ├── mongodb/          # Conexión a MongoDB Atlas
 │       └── handlers/         # Lógica de cada recurso de la API
 ├── frontend/                 # Interfaz web (la sirve el backend)
 │   ├── index.html
@@ -58,7 +65,8 @@ Proyecto final del curso **Bases de Datos II**.
 ├── database/                 # Scripts SQL, se ejecutan en orden
 │   ├── 01_esquema.sql        # Base de datos y tablas
 │   ├── 02_datos_prueba.sql   # Datos de ejemplo
-│   └── 03_logica_negocio.sql # Funciones, procedimientos, triggers y vistas
+│   ├── 03_logica_negocio.sql # Funciones, procedimientos, triggers y vistas
+│   └── 04_roles_autenticacion.sql # Roles y usuarios
 ├── docs/
 │   └── Proyecto_Final_v20261.pdf  # Enunciado / documentación del proyecto
 ├── .env.example              # Variables de entorno de referencia
@@ -71,7 +79,9 @@ Proyecto final del curso **Bases de Datos II**.
 
 El esquema `taller_vehiculos` contiene las tablas:
 
-`cargos`, `categorias_servicio`, `clientes`, `vehiculos`, `empleados`, `proveedores`, `repuestos`, `servicios`, `ordenes_trabajo`, `detalle_servicios`, `detalle_repuestos`, `facturas`, `revisiones_cda`.
+`cargos`, `categorias_servicio`, `clientes`, `vehiculos`, `empleados`, `proveedores`, `repuestos`, `repuesto_proveedor`, `servicios`, `ordenes_trabajo`, `detalle_servicios`, `detalle_repuestos`, `facturas`, `revisiones_cda`, `items_inspeccion`, `detalle_revision_cda`, `roles`, `usuarios`.
+
+En MongoDB se usa la base `aurum_nosql` con la colección `historial_vehicular`: cada documento es un evento técnico de un vehículo, con el técnico embebido y un campo `detalle` de estructura libre.
 
 ### Lógica de negocio
 
@@ -132,25 +142,43 @@ Ejecuta los scripts en orden (también puedes abrirlos en MySQL Workbench):
 mysql -u root -p < database/01_esquema.sql
 mysql -u root -p < database/02_datos_prueba.sql
 mysql -u root -p < database/03_logica_negocio.sql
+mysql -u root -p < database/04_roles_autenticacion.sql
 ```
 
-### 3. Configurar la conexión
+### 3. Configurar MongoDB Atlas
 
-El backend lee la configuración de variables de entorno (ver `.env.example`):
+1. En Atlas, en **Network Access**, autoriza la IP pública desde la que se conecta el servidor.
+2. En **Database Access**, crea un usuario con rol `readWrite` solo sobre la base `aurum_nosql`.
+3. En **Connect > Drivers > Go**, copia la URI de conexión.
 
-| Variable       | Obligatoria | Valor por defecto | Descripción |
-|----------------|-------------|-------------------|-------------|
-| `MYSQL_DSN`    | Sí          | —                 | Cadena de conexión a MySQL |
-| `PORT`         | No          | `8080`            | Puerto del servidor |
-| `FRONTEND_DIR` | No          | `../frontend`     | Carpeta del frontend |
+### 4. Configurar las variables de entorno
 
-### 4. Ejecutar el backend
+El backend lee la configuración de variables de entorno (ver `.env.example`). Nunca subas los valores reales al repositorio.
+
+| Variable         | Obligatoria | Valor por defecto | Descripción |
+|------------------|-------------|-------------------|-------------|
+| `MYSQL_DSN`      | Sí          | —                 | Cadena de conexión a MySQL |
+| `MONGODB_URI`    | Sí          | —                 | URI de MongoDB Atlas |
+| `SESSION_SECRET` | Sí          | —                 | Secreto para firmar las sesiones (32 caracteres o más) |
+| `ADMIN_USERNAME` | Primera vez | —                 | Usuario del administrador inicial |
+| `ADMIN_PASSWORD` | Primera vez | —                 | Contraseña del administrador inicial (10 caracteres o más) |
+| `COOKIE_SECURE`  | No          | `false`           | `true` si se despliega con HTTPS |
+| `PORT`           | No          | `8080`            | Puerto del servidor |
+| `FRONTEND_DIR`   | No          | `../frontend`     | Carpeta del frontend |
+
+`ADMIN_USERNAME` y `ADMIN_PASSWORD` solo se usan si la tabla `usuarios` está vacía, para crear el primer administrador.
+
+### 5. Ejecutar el backend
 
 Linux / macOS:
 
 ```bash
 cd backend
-export MYSQL_DSN="root:tu_clave@tcp(localhost:3306)/taller_vehiculos?parseTime=true"
+export MYSQL_DSN="taller_app:CLAVE@tcp(127.0.0.1:3306)/taller_vehiculos?parseTime=true"
+export MONGODB_URI="mongodb+srv://USUARIO:CLAVE@CLUSTER/aurum_nosql"
+export SESSION_SECRET="un_secreto_aleatorio_de_al_menos_32_caracteres"
+export ADMIN_USERNAME="admin"
+export ADMIN_PASSWORD="ClaveSegura2026"
 go run .
 ```
 
@@ -158,31 +186,45 @@ Windows (PowerShell):
 
 ```powershell
 cd backend
-$env:MYSQL_DSN="root:tu_clave@tcp(localhost:3306)/taller_vehiculos?parseTime=true"
+$env:MYSQL_DSN="taller_app:CLAVE@tcp(127.0.0.1:3306)/taller_vehiculos?parseTime=true"
+$env:MONGODB_URI="mongodb+srv://USUARIO:CLAVE@CLUSTER/aurum_nosql"
+$env:SESSION_SECRET="un_secreto_aleatorio_de_al_menos_32_caracteres"
+$env:ADMIN_USERNAME="admin"
+$env:ADMIN_PASSWORD="ClaveSegura2026"
 go run .
 ```
 
-Abre **http://localhost:8080** en el navegador. El backend sirve la API y el frontend.
+Abre **http://localhost:8080** e inicia sesión con el administrador. El backend sirve la API y el frontend.
 
 ---
 
 ## API REST
 
-| Método   | Endpoint                          | Descripción |
-|----------|-----------------------------------|-------------|
-| GET/POST | `/api/clientes`                   | Listar / crear clientes (con vehículo opcional) |
-| GET      | `/api/clientes/{id}`              | Detalle de un cliente y sus vehículos |
-| GET/POST | `/api/vehiculos`                  | Listar / crear vehículos (filtro `?placa=`) |
-| GET      | `/api/empleados`                  | Listar empleados |
-| GET      | `/api/servicios`                  | Listar servicios |
-| GET/POST | `/api/repuestos`                  | Listar / crear repuestos |
-| GET      | `/api/repuestos/bajo-stock`       | Repuestos por debajo del stock mínimo |
-| GET/POST | `/api/ordenes`                    | Listar / crear órdenes (filtro `?estado=`) |
-| GET      | `/api/ordenes/{id}`               | Detalle de una orden con servicios y repuestos |
-| POST     | `/api/ordenes/{id}/servicios`     | Agregar un servicio a la orden |
-| POST     | `/api/ordenes/{id}/repuestos`     | Agregar un repuesto a la orden |
-| POST     | `/api/ordenes/{id}/cerrar`        | Cerrar la orden y facturar |
-| GET/POST | `/api/revisionescda`              | Listar / registrar revisiones CDA |
+Todas las rutas, excepto el inicio de sesión, requieren una sesión activa. El rol `EMPLEADO` no puede eliminar registros ni administrar usuarios.
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | `/api/auth/login`, `/api/auth/logout` | Iniciar y cerrar sesión |
+| GET | `/api/auth/me` | Usuario de la sesión actual |
+| GET/POST | `/api/usuarios` | Listar / crear usuarios (solo administrador) |
+| PUT | `/api/usuarios/{id}` | Editar un usuario (rol, estado o contraseña) |
+| GET/POST | `/api/clientes` | Listar / crear clientes (con vehículo opcional) |
+| GET | `/api/clientes/{id}`, `/api/clientes/{id}/vehiculos` | Un cliente y sus vehículos |
+| GET/POST | `/api/vehiculos` | Listar / crear vehículos (filtro `?placa=`) |
+| GET | `/api/empleados`, `/api/servicios`, `/api/proveedores` | Catálogos |
+| GET/POST | `/api/repuestos` | Listar / crear repuestos |
+| GET | `/api/repuestos/bajo-stock` | Repuestos por debajo del stock mínimo |
+| GET/POST/DELETE | `/api/repuestos/{id}/proveedores` | Proveedores asociados a un repuesto |
+| GET/POST | `/api/ordenes` | Listar / crear órdenes (filtro `?estado=`) |
+| GET | `/api/ordenes/{id}` | Detalle de una orden con servicios y repuestos |
+| POST | `/api/ordenes/{id}/servicios`, `/repuestos`, `/cerrar` | Agregar ítems, cerrar y facturar |
+| GET/POST | `/api/revisionescda` | Listar / registrar revisiones CDA |
+| GET/PUT/DELETE | `/api/revisionescda/{id}` y `/{id}/detalle` | Revisión CDA y su checklist |
+| GET | `/api/items-inspeccion` | Ítems del checklist CDA |
+| GET/POST | `/api/historial` | Listar / crear eventos del historial (MongoDB) |
+| GET/PUT/DELETE | `/api/historial/{id}` | Consultar, editar o eliminar un evento |
+| GET | `/api/historial/vehiculo/{id}` | Historial de un vehículo |
+| GET | `/api/historial/estadisticas` | Total de eventos, vehículos atendidos y eventos por tipo |
 
 ---
 
