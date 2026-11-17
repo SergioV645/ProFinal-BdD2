@@ -575,6 +575,7 @@ SELECT
     o.estado,
     o.km_ingreso,
     o.diagnostico,
+    o.observaciones,
     c.cliente_id,
     CONCAT(c.nombre, ' ', c.apellido) AS cliente,
     c.cedula                          AS cedula_cliente,

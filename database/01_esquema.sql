@@ -1,6 +1,6 @@
 -- ============================================================
 -- TALLER DE VEHICULOS & CDA
--- Script 01: Creacion de base de datos y tablas
+-- Script 01: Creacion de base de datos y tablas (incluye proveedores multiples y checklist CDA)
 -- Motor: MySQL 8.0+
 -- ============================================================
 
@@ -102,7 +102,7 @@ CREATE TABLE proveedores (
 ) ENGINE=InnoDB;
 
 -- -----------------------------------------------------------
--- 7. REPUESTOS  (1:N con proveedores)
+-- 7. REPUESTOS  (proveedor principal; N:M ampliada en 05_tablas_faltantes.sql)
 -- -----------------------------------------------------------
 CREATE TABLE repuestos (
     repuesto_id   INT            NOT NULL AUTO_INCREMENT,
@@ -230,6 +230,61 @@ CREATE TABLE revisiones_cda (
     CONSTRAINT fk_cda_empleado  FOREIGN KEY (empleado_id)
         REFERENCES empleados (empleado_id) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+
+-- -----------------------------------------------------------
+-- 14. REPUESTO_PROVEEDOR (N:M entre repuestos y proveedores)
+-- Se conserva repuestos.proveedor_id como proveedor principal
+-- para compatibilidad con consultas y funcionalidades existentes.
+-- -----------------------------------------------------------
+CREATE TABLE repuesto_proveedor (
+    repuesto_id   INT           NOT NULL,
+    proveedor_id  INT           NOT NULL,
+    precio_compra DECIMAL(12,2) NOT NULL,
+    dias_entrega  SMALLINT      NOT NULL DEFAULT 1,
+    PRIMARY KEY (repuesto_id, proveedor_id),
+    CONSTRAINT ck_rp_precio CHECK (precio_compra > 0),
+    CONSTRAINT ck_rp_dias CHECK (dias_entrega >= 0),
+    CONSTRAINT fk_rp_repuesto FOREIGN KEY (repuesto_id)
+        REFERENCES repuestos (repuesto_id)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_rp_proveedor FOREIGN KEY (proveedor_id)
+        REFERENCES proveedores (proveedor_id)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE INDEX ix_rp_proveedor ON repuesto_proveedor (proveedor_id);
+
+-- -----------------------------------------------------------
+-- 15. ITEMS_INSPECCION (catalogo de elementos del checklist CDA)
+-- -----------------------------------------------------------
+CREATE TABLE items_inspeccion (
+    item_id     INT          NOT NULL AUTO_INCREMENT,
+    nombre      VARCHAR(100) NOT NULL,
+    grupo       VARCHAR(40)  NOT NULL,
+    es_critico  BOOLEAN      NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (item_id),
+    UNIQUE KEY uq_item_nombre (nombre)
+) ENGINE=InnoDB;
+
+-- -----------------------------------------------------------
+-- 16. DETALLE_REVISION_CDA (resultado por item y revision)
+-- -----------------------------------------------------------
+CREATE TABLE detalle_revision_cda (
+    revision_id INT NOT NULL,
+    item_id     INT NOT NULL,
+    resultado   ENUM('CONFORME','NO_CONFORME') NOT NULL,
+    observacion VARCHAR(200) NULL,
+    PRIMARY KEY (revision_id, item_id),
+    CONSTRAINT fk_drc_revision FOREIGN KEY (revision_id)
+        REFERENCES revisiones_cda (revision_id)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_drc_item FOREIGN KEY (item_id)
+        REFERENCES items_inspeccion (item_id)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE INDEX ix_drc_item ON detalle_revision_cda (item_id, resultado);
 
 -- -----------------------------------------------------------
 -- Indices adicionales para consultas frecuentes
