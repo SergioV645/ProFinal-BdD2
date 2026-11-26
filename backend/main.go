@@ -7,22 +7,12 @@ import (
 	"strings"
 
 	"taller_vehiculos/internal/auth"
-	"taller_vehiculos/internal/config"
 	"taller_vehiculos/internal/db"
 	"taller_vehiculos/internal/handlers"
 	"taller_vehiculos/internal/mongodb"
 )
 
 func main() {
-	// Carga backend/.env o el .env de la raíz del proyecto, si existe.
-	envFile, err := config.LoadDotEnv(".env", "../.env")
-	if err != nil {
-		log.Fatal("Error leyendo el archivo .env: ", err)
-	}
-	if envFile != "" {
-		log.Println("Configuración cargada desde", envFile)
-	}
-
 	dsn := os.Getenv("MYSQL_DSN")
 	if dsn == "" {
 		log.Fatal("Define MYSQL_DSN antes de iniciar el servidor")
@@ -85,7 +75,7 @@ func main() {
 	mux.HandleFunc("/api/items-inspeccion", handlers.ItemsInspeccion)
 
 	log.Printf("Servidor corriendo en http://localhost:%s", port)
-	err = http.ListenAndServe(":"+port, corsMiddleware(auth.Middleware(mux)))
+	err := http.ListenAndServe(":"+port, corsMiddleware(auth.Middleware(mux)))
 	if err != nil && err != http.ErrServerClosed {
 		log.Println("Error en el servidor:", err)
 	}
