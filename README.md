@@ -124,7 +124,7 @@ En MongoDB se usa la base `aurum_nosql` con la colección `historial_vehicular`:
 
 ### Requisitos
 
-- [Go](https://go.dev/dl/) 1.25 o superior
+- [Go](https://go.dev/dl/) 1.22 o superior
 - MySQL 8 o superior en ejecución
 
 ### 1. Clonar el repositorio
@@ -153,65 +153,46 @@ mysql -u root -p < database/04_roles_autenticacion.sql
 
 ### 4. Configurar las variables de entorno
 
-La configuración sensible (claves de MySQL y MongoDB, secreto de sesión y administrador inicial) **nunca se escribe en el código ni en este README**. Se guarda en un archivo `.env` local, que está en `.gitignore` y por eso no se sube a GitHub.
-
-**1. Crea tu `.env` a partir de la plantilla** (en la raíz del proyecto):
-
-Linux / macOS:
-
-```bash
-cp .env.example .env
-chmod 600 .env   # solo tu usuario puede leerlo
-```
-
-Windows (PowerShell):
-
-```powershell
-Copy-Item .env.example .env
-```
-
-**2. Genera un `SESSION_SECRET` aleatorio** (mínimo 32 caracteres; el servidor no arranca con uno más corto) y pégalo en el `.env`:
-
-Linux / macOS:
-
-```bash
-openssl rand -base64 48
-```
-
-Windows (PowerShell):
-
-```powershell
-[Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
-```
-
-**3. Completa el resto de valores en el `.env`** con tus credenciales reales. Usa para MySQL un usuario propio de la aplicación (`taller_app`), no `root`.
+El backend lee la configuración de variables de entorno (ver `.env.example`).
 
 | Variable         | Obligatoria | Valor por defecto | Descripción |
 |------------------|-------------|-------------------|-------------|
 | `MYSQL_DSN`      | Sí          | —                 | Cadena de conexión a MySQL |
 | `MONGODB_URI`    | Sí          | —                 | URI de MongoDB Atlas |
-| `SESSION_SECRET` | Sí          | —                 | Secreto aleatorio para firmar las sesiones (32 caracteres o más) |
+| `SESSION_SECRET` | Sí          | —                 | Secreto para firmar las sesiones (32 caracteres o más) |
 | `ADMIN_USERNAME` | Primera vez | —                 | Usuario del administrador inicial |
 | `ADMIN_PASSWORD` | Primera vez | —                 | Contraseña del administrador inicial (10 caracteres o más) |
 | `COOKIE_SECURE`  | No          | `false`           | `true` si se despliega con HTTPS |
 | `PORT`           | No          | `8080`            | Puerto del servidor |
 | `FRONTEND_DIR`   | No          | `../frontend`     | Carpeta del frontend |
 
-`ADMIN_USERNAME` y `ADMIN_PASSWORD` solo se usan si la tabla `usuarios` está vacía, para crear el primer administrador (la contraseña se guarda cifrada con bcrypt). Después de ese primer arranque, bórralas del `.env` y cambia la contraseña desde la aplicación.
-
-> **Buenas prácticas**
-> - No escribas claves directamente en la terminal (`export CLAVE=...`): quedan guardadas en el historial de comandos.
-> - Nunca subas el `.env` ni compartas su contenido por chat o correo.
-> - En un servidor, define las variables en el propio entorno del sistema o del servicio; el backend les da prioridad sobre el `.env`.
+`ADMIN_USERNAME` y `ADMIN_PASSWORD` solo se usan si la tabla `usuarios` está vacía, para crear el primer administrador.
 
 ### 5. Ejecutar el backend
 
+Linux / macOS:
+
 ```bash
 cd backend
+export MYSQL_DSN="taller_app:CLAVE@tcp(127.0.0.1:3306)/taller_vehiculos?parseTime=true"
+export MONGODB_URI="mongodb+srv://USUARIO:CLAVE@CLUSTER/aurum_nosql"
+export SESSION_SECRET=""
+export ADMIN_USERNAME="admin"
+export ADMIN_PASSWORD="ClaveSegura2026"
 go run .
 ```
 
-Al iniciar, el backend lee automáticamente el `.env` (busca en `backend/` y en la raíz del proyecto). Si falta una variable obligatoria, se detiene con un mensaje que indica cuál.
+Windows (PowerShell):
+
+```powershell
+cd backend
+$env:MYSQL_DSN="taller_app:CLAVE@tcp(127.0.0.1:3306)/taller_vehiculos?parseTime=true"
+$env:MONGODB_URI="mongodb+srv://USUARIO:CLAVE@CLUSTER/aurum_nosql"
+$env:SESSION_SECRET=""
+$env:ADMIN_USERNAME="admin"
+$env:ADMIN_PASSWORD="ClaveSegura2026"
+go run .
+```
 
 Abre **http://localhost:8080** e inicia sesión con el administrador. El backend sirve la API y el frontend.
 
