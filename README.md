@@ -136,7 +136,7 @@ cd ProFinal-BdD2
 
 ### 2. Crear la base de datos
 
-Ejecuta los scripts en orden (también puedes abrirlos en MySQL Workbench):
+Ejecuta los scripts en orden:
 
 ```bash
 mysql -u root -p < database/01_esquema.sql
@@ -153,7 +153,7 @@ mysql -u root -p < database/04_roles_autenticacion.sql
 
 ### 4. Configurar las variables de entorno
 
-El backend lee la configuración de variables de entorno (ver `.env.example`). Nunca subas los valores reales al repositorio.
+El backend lee la configuración de variables de entorno (ver `.env.example`).
 
 | Variable         | Obligatoria | Valor por defecto | Descripción |
 |------------------|-------------|-------------------|-------------|
@@ -176,7 +176,7 @@ Linux / macOS:
 cd backend
 export MYSQL_DSN="taller_app:CLAVE@tcp(127.0.0.1:3306)/taller_vehiculos?parseTime=true"
 export MONGODB_URI="mongodb+srv://USUARIO:CLAVE@CLUSTER/aurum_nosql"
-export SESSION_SECRET="un_secreto_aleatorio_de_al_menos_32_caracteres"
+export SESSION_SECRET=""
 export ADMIN_USERNAME="admin"
 export ADMIN_PASSWORD="ClaveSegura2026"
 go run .
@@ -188,7 +188,7 @@ Windows (PowerShell):
 cd backend
 $env:MYSQL_DSN="taller_app:CLAVE@tcp(127.0.0.1:3306)/taller_vehiculos?parseTime=true"
 $env:MONGODB_URI="mongodb+srv://USUARIO:CLAVE@CLUSTER/aurum_nosql"
-$env:SESSION_SECRET="un_secreto_aleatorio_de_al_menos_32_caracteres"
+$env:SESSION_SECRET=""
 $env:ADMIN_USERNAME="admin"
 $env:ADMIN_PASSWORD="ClaveSegura2026"
 go run .
